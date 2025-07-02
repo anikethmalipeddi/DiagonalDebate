@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  passwordResetTokens PasswordResetToken[]
+  eventSignups  EventSignup[]
+  legislationSubmissions LegislationSubmission[]
+  lessonRatings LessonRating[]
+  lessonEnrollments LessonEnrollment[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model EventSignup {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model LegislationSubmission {
+  id                    String   @id @default(uuid())
+  type                  String   // bill, resolution, amendment
+  category              String
+  number                String
+  title                 String
+  content               String
+  overallScore          Int      @default(0)
+  templateErrors        String   // JSON string
+  grammarSpellingErrors String   // JSON string
+  readabilityScore      Int      @default(0)
+  readabilitySuggestions String  // JSON string
+  aiSuggestions         String   // JSON string
+  isSubmittable         Boolean  @default(false)
+  status                String   @default("submitted") // submitted, approved, rejected, pending
+  submittedBy           String
+  submittedAt           DateTime @default(now())
+  reviewedBy            String?
+  reviewedAt            DateTime?
+  reviewNotes           String?
+  user                  User     @relation(fields: [submittedBy], references: [id])
+}
+
+model LessonRating {
+  id        String   @id @default(uuid())
+  userId    String
+  lessonFileName String // The PDF file name for the lesson
+  rating    Int      // 1-5
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, lessonFileName]) // One rating per user per lesson
+}
+
+model LessonEnrollment {
+  id        String   @id @default(uuid())
+  userId    String
+  lessonFileName String // The PDF file name for the lesson
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, lessonFileName]) // One enrollment per user per lesson
+}

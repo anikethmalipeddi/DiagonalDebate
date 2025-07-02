@@ -1,0 +1,34 @@
+{
+  "bill": {
+    "titlePattern": "A Bill to ",
+    "requiredSections": [
+      { "header": "SECTION 1.", "required": true },
+      { "header": "SECTION 2.", "required": true },
+      { "header": "SECTION 3.", "required": true },
+      { "header": "SECTION 4.", "required": false },
+      { "header": "SECTION 5.", "required": false },
+      { "header": "SECTION 6.", "required": false }
+    ],
+    "enactingClause": "BE IT ENACTED BY THE CONGRESS HERE ASSEMBLED THAT:",
+    "footer": "Respectfully Submitted, Representative _______ Rock Ridge High School"
+  },
+  "resolution": {
+    "titlePattern": "A Resolution to ",
+    "requiredClauses": [
+      { "header": "WHEREAS,", "min": 1 },
+      { "header": "RESOLVED,", "required": true },
+      { "header": "FURTHER RESOLVED,", "required": false }
+    ],
+    "footer": "Respectfully Submitted, Representative _______ Rock Ridge High School"
+  },
+  "amendment": {
+    "titlePattern": "A Resolution to Amend the Constitution ",
+    "resolvedClause": "RESOLVED,",
+    "articleHeader": "ARTICLE --",
+    "requiredSections": [
+      { "header": "SECTION 1:", "required": true },
+      { "header": "SECTION 2:", "required": true }
+    ],
+    "footer": "Introduced for Congressional Debate by _______."
+  }
+} 
