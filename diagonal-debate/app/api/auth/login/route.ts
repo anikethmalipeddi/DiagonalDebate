@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import sqlite3 from 'sqlite3'
-import { open } from 'sqlite'
 import { SignJWT } from 'jose'
-
-const dbPromise = open({
-  filename: './prisma/dev.db',
-  driver: sqlite3.Database
-})
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,11 +16,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const db = await dbPromise
-    const user = await db.get(
-      'SELECT * FROM User WHERE email = ?',
-      [email]
-    )
+    const user = await prisma.user.findUnique({ where: { email } })
 
     // console.log('DEBUG: User found:', Boolean(user))
     if (!user) {
@@ -53,15 +43,15 @@ export async function POST(request: NextRequest) {
       name: user.name 
     })
       .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
+      .setExpirationTime('24h')
       .sign(secret)
 
     // Create response with cookie
     const response = NextResponse.json({
       user: {
         id: user.id,
-        email: user.email,
-        name: user.name
+        name: user.name,
+        email: user.email
       }
     })
 
@@ -70,7 +60,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
+      maxAge: 60 * 60 * 24 // 24 hours
     })
 
     return response

@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/lib/generated/prisma/index.js';
+import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-
-let prisma: PrismaClient;
-if (process.env.NODE_ENV === 'production') {
-  prisma = new PrismaClient();
-} else {
-  if (!(global as any).prisma) {
-    (global as any).prisma = new PrismaClient();
-  }
-  prisma = (global as any).prisma;
-}
 
 // GET: fetch total enrolled and if user is enrolled
 export async function GET(req: NextRequest, context: { params: { lessonFileName: string } }) {
@@ -35,34 +25,38 @@ export async function GET(req: NextRequest, context: { params: { lessonFileName:
 }
 
 // POST: enroll current user in lesson
-export async function POST(req: NextRequest, context: { params: { lessonFileName: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ lessonFileName: string }> }
+) {
   try {
-    const { params } = await context;
-  const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    const { lessonFileName } = await params;
+    const user = await getCurrentUser();
     
-  const userId = user.id;
-  const lessonFileName = decodeURIComponent(params.lessonFileName);
-
-    // Verify user exists in database before creating enrollment
-    const userExists = await prisma.user.findUnique({ where: { id: userId } });
-    if (!userExists) {
-      console.error('User not found in database:', userId);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-  // Enroll the user if not already enrolled
-  await prisma.lessonEnrollment.upsert({
-    where: { userId_lessonFileName: { userId, lessonFileName } },
-    update: {},
-    create: { userId, lessonFileName },
-  });
-    
-  // Count total enrollments for this lesson
-  const total = await prisma.lessonEnrollment.count({ where: { lessonFileName } });
-  return NextResponse.json({ success: true, total });
+    // Check if already enrolled
+    const existingEnrollment = await prisma.lessonEnrollment.findFirst({
+      where: { lessonFileName, userId: user.id }
+    });
+
+    if (existingEnrollment) {
+      return NextResponse.json({ error: 'Already enrolled in this lesson' }, { status: 409 });
+    }
+
+    // Create enrollment
+    const enrollment = await prisma.lessonEnrollment.create({
+      data: {
+        lessonFileName,
+        userId: user.id
+      }
+    });
+
+    return NextResponse.json({ success: true, enrollment });
   } catch (error) {
-    console.error('Error in enrollment POST:', error);
-    return NextResponse.json({ error: 'Failed to enroll in lesson' }, { status: 500 });
+    console.error('Error enrolling in lesson:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

@@ -527,12 +527,14 @@ export default function LessonsPage() {
       setRatingLesson(showRatingFlag);
       // Clear the flag
       localStorage.removeItem('showRatingModal');
-      // Show modal with a delay for smooth fade-in
+      // Show modal with a delay for smooth fade-in, but only if logged in
       setTimeout(() => {
-        setShowRatingModal(true);
+        if (isLoggedIn) {
+          setShowRatingModal(true);
+        }
       }, 600);
     }
-  }, []);
+  }, [isLoggedIn]);
 
   // Check user authentication status on mount
   useEffect(() => {

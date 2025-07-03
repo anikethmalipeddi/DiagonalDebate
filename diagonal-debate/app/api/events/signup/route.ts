@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import sqlite3 from 'sqlite3'
-import { open } from 'sqlite'
 import { randomUUID } from 'crypto'
-
-const dbPromise = open({
-  filename: './prisma/dev.db',
-  driver: sqlite3.Database
-})
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,26 +15,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event ID is required' }, { status: 400 })
     }
 
-    const db = await dbPromise
-
     // Check if already signed up
-    const existingSignup = await db.get(
-      'SELECT id FROM EventSignup WHERE eventId = ? AND userId = ?',
-      [eventId, user.id]
-    )
+    const existingSignup = await prisma.eventSignup.findFirst({
+      where: { eventId, userId: user.id }
+    })
 
     if (existingSignup) {
-      return NextResponse.json({ message: 'Already signed up' })
+      return NextResponse.json({ error: 'Already signed up for this event' }, { status: 409 })
     }
 
     // Create signup
-    const signupId = randomUUID()
-    await db.run(
-      'INSERT INTO EventSignup (id, eventId, userId, createdAt) VALUES (?, ?, ?, ?)',
-      [signupId, eventId, user.id, new Date()]
-    )
+    const signup = await prisma.eventSignup.create({
+      data: {
+        id: randomUUID(),
+        eventId,
+        userId: user.id
+      }
+    })
 
-    return NextResponse.json({ success: true, signupId })
+    return NextResponse.json({ success: true, signup })
   } catch (error) {
     console.error('Event signup error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
