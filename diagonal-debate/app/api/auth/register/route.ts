@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import sqlite3 from 'sqlite3'
-import { open } from 'sqlite'
 import { SignJWT } from 'jose'
 import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
-
-const dbPromise = open({
-  filename: './prisma/dev.db',
-  driver: sqlite3.Database
-})
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,13 +24,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const db = await dbPromise
-    
     // Check if user already exists
-    const existingUser = await db.get(
-      'SELECT id FROM User WHERE email = ?',
-      [email]
-    )
+    const existingUser = await prisma.user.findUnique({ where: { email } })
 
     if (existingUser) {
       return NextResponse.json(
@@ -46,20 +35,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user
-    const userId = randomUUID()
-    const now = Date.now()
     const hashedPassword = await bcrypt.hash(password, 10)
-    await db.run(
-      'INSERT INTO User (id, name, email, password, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, name, email, hashedPassword, now, now]
-    )
+    const user = await prisma.user.create({
+      data: {
+        id: randomUUID(),
+        name,
+        email,
+        password: hashedPassword,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    })
 
     // Create JWT token
     const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret')
     const token = await new SignJWT({ 
-      userId, 
-      email,
-      name 
+      userId: user.id, 
+      email: user.email,
+      name: user.name 
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime('7d')
@@ -68,9 +61,9 @@ export async function POST(request: NextRequest) {
     // Create response with cookie
     const response = NextResponse.json({
       user: {
-        id: userId,
-        email,
-        name
+        id: user.id,
+        email: user.email,
+        name: user.name
       }
     })
 
@@ -83,12 +76,8 @@ export async function POST(request: NextRequest) {
     })
 
     return response
-
   } catch (error) {
-    console.error('Registration error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('Register error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

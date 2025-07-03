@@ -1,17 +1,14 @@
 import { jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-import sqlite3 from 'sqlite3'
-import { open } from 'sqlite'
-
-const dbPromise = open({
-  filename: './prisma/dev.db',
-  driver: sqlite3.Database
-})
+import { prisma } from './prisma'
 
 export interface User {
   id: string
   name: string
   email: string
+  password: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -33,7 +30,10 @@ export async function getCurrentUser(): Promise<User | null> {
     return {
       id: payload.userId as string,
       email: payload.email as string,
-      name: payload.name as string
+      name: payload.name as string,
+      password: '',
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
   } catch (error) {
     console.error('Error getting current user:', error)
@@ -43,11 +43,11 @@ export async function getCurrentUser(): Promise<User | null> {
 
 export async function getUserById(userId: string): Promise<User | null> {
   try {
-    const db = await dbPromise
-    const user = await db.get(
-      'SELECT id, name, email FROM User WHERE id = ?',
-      [userId]
-    )
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId
+      }
+    })
 
     return user || null
   } catch (error) {

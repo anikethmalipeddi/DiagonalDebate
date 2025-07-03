@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import sqlite3 from 'sqlite3'
-import { open } from 'sqlite'
-
-const dbPromise = open({
-  filename: './prisma/dev.db',
-  driver: sqlite3.Database
-})
+import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
@@ -17,17 +11,19 @@ export async function GET(
       return NextResponse.json({ error: 'Event ID is required' }, { status: 400 })
     }
 
-    const db = await dbPromise
-    const signups = await db.all(
-      `SELECT u.id, u.name 
-       FROM User u
-       JOIN EventSignup es ON u.id = es.userId
-       WHERE es.eventId = ?
-       ORDER BY es.createdAt ASC`,
-      [eventId]
-    )
+    const signups = await prisma.eventSignup.findMany({
+      where: { eventId },
+      include: {
+        user: {
+          select: { id: true, name: true }
+        }
+      },
+      orderBy: { createdAt: 'asc' }
+    })
 
-    return NextResponse.json({ signups })
+    const formattedSignups = signups.map((s: any) => ({ id: s.user.id, name: s.user.name }))
+
+    return NextResponse.json({ signups: formattedSignups })
   } catch (error) {
     console.error('Error fetching event signups:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

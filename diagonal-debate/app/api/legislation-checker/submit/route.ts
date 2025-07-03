@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { PrismaClient } from '@/lib/generated/prisma'
+import { prisma } from '@/lib/prisma'
 import { emailToCaptains, LegislationData } from '@/lib/email'
 import PDFDocument from 'pdfkit'
 import path from 'path'
+import { randomUUID } from 'crypto'
+import { sendEmail } from '@/lib/email'
 
 /* -------------------------------------------------------------------------
    Rock Ridge – PDF generator (EXACT template match with fixed alignment)
    ------------------------------------------------------------------------- */
-
-const prisma = new PrismaClient()
 
 // ---------- page geometry (exact specifications) ----------
 const PAGE_W = 612 // 8.5 in × 72 pt
@@ -886,106 +886,46 @@ function checkTemplateAdherence(type: 'bill' | 'resolution' | 'amendment', conte
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const user = await getCurrentUser()
-    if (!user) return NextResponse.json({ error: 'Auth required' }, { status: 401 })
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
 
-    const body = await request.json()
-    const { type, category, number, title, content, feedback } = body
-    if (!type || !category || !number || !title || !content) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    const { title, description, pdfContent, pdfText } = await request.json()
+
+    if (!title || !description || !pdfContent) {
+      return NextResponse.json(
+        { error: 'Title, description, and PDF content are required' },
+        { status: 400 }
+      )
     }
-    if (!['bill', 'resolution', 'amendment'].includes(type)) {
-      return NextResponse.json({ error: 'Invalid legislation type' }, { status: 400 })
-    }
-    // Prevent user from including the enactment clause in the body
-    if (type === 'bill' && content.toLowerCase().includes('be it enacted by the congress here assembled that')) {
-      return NextResponse.json({ error: "Do not include the enactment clause ('BE IT ENACTED BY THE CONGRESS HERE ASSEMBLED THAT:') in the body of your legislation. The system will add it automatically." }, { status: 400 })
-    }
-    // Strict template adherence check
-    const templateErrors = checkTemplateAdherence(type, content)
-    // Do NOT block submission for template adherence errors; just include them in the feedback/database
-    // Only block for forbidden content (name, title, enactment clause, line numbers, signature, etc.)
-    // Backend validation: prevent name or title in body
-    const userFirstName = user.name ? user.name.split(' ')[0].toLowerCase() : ''
-    const userFullName = user.name ? user.name.toLowerCase() : ''
-    // 1. Block user's name in body
-    if (content.toLowerCase().includes(userFirstName) && userFirstName.length > 0) {
-      return NextResponse.json({ error: 'Do not include your name in the body of your legislation.' }, { status: 400 })
-    }
-    // 2. Block title in body
-    if (content.toLowerCase().includes(title.toLowerCase()) && title.length > 0) {
-      return NextResponse.json({ error: 'Do not include the title in the body of your legislation.' }, { status: 400 })
-    }
-    // 3. Block line numbers at the start of lines (not part of section headers)
-    if (content.split(/\n/).some((line: string) => {
-      const trimmed = line.trim()
-      return /^\d{1,3}(\.|:|\s)/.test(trimmed) && !/^section\s+\d+\./i.test(trimmed)
-    })) {
-      return NextResponse.json({ error: 'Do not include line numbers at the start of lines in your legislation text.' }, { status: 400 })
-    }
-    // 4. Block any part of the submission signature
-    const forbiddenPhrases = [
-      'respectfully submitted',
-      'representative',
-      'rock ridge high school',
-      userFirstName,
-      userFullName
-    ].filter(Boolean)
-    if (forbiddenPhrases.some(phrase => content.toLowerCase().includes(phrase))) {
-      return NextResponse.json({ error: "Do not include any part of the submission signature (e.g., 'Respectfully Submitted', 'Representative', 'Rock Ridge High School', or your name) in the body of your legislation." }, { status: 400 })
-    }
-    // 5. Block 3+ consecutive lines that are just numbers (with optional whitespace)
-    const lines = content.split(/\n/)
-    let consecutive = 0
-    for (let i = 0; i < lines.length; i++) {
-      if (/^\s*\d{1,3}\s*$/.test(lines[i])) {
-        consecutive++
-        if (consecutive >= 3) {
-          return NextResponse.json({ error: 'Do not include pasted line number blocks in your legislation text.' }, { status: 400 })
-        }
-      } else {
-        consecutive = 0
+
+    // Save submission to database
+    const submission = await prisma.legislationSubmission.create({
+      data: {
+        id: randomUUID(),
+        userId: user.id,
+        title,
+        description,
+        pdfContent,
+        pdfText: pdfText || null
       }
-    }
-
-    const pdf = await generateLegislationPDF(type, category, number, title, content, user.name || '')
-    const chunks: Buffer[] = []
-    pdf.on('data', (c: Buffer) => chunks.push(c))
-
-    return new Promise(resolve => {
-      pdf.on('end', async () => {
-        const buffer = Buffer.concat(chunks)
-        if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-          const data: LegislationData = {
-            type, category, number, title, content,
-            submittedBy: user.name || user.email || 'Unknown User',
-            submittedAt: new Date()
-          }
-          await emailToCaptains(buffer, data)
-        }
-
-        const submission = await prisma.legislationSubmission.create({
-          data: {
-            type,
-            category,
-            number,
-            title,
-            content,
-            overallScore: feedback?.overallScore ?? 0,
-            templateErrors: JSON.stringify(feedback?.templateErrors ?? []),
-            grammarSpellingErrors: JSON.stringify(feedback?.grammarSpellingErrors ?? []),
-            readabilityScore: feedback?.readability?.score ?? 0,
-            readabilitySuggestions: JSON.stringify(feedback?.readability?.suggestions ?? []),
-            aiSuggestions: JSON.stringify(feedback?.aiSuggestions ?? []),
-            isSubmittable: feedback?.isSubmittable ?? false,
-            status: 'submitted',
-            submittedBy: user.id || 'unknown'
-          }
-        })
-
-        resolve(NextResponse.json({ success: true, submissionId: submission.id }))
-      })
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 })
+
+    // Send email notification
+    await sendEmail(
+      'New Legislation Submission',
+      `New legislation submission received:\n\nTitle: ${title}\nDescription: ${description}\nSubmitted by: ${user.name} (${user.email})\n\nPDF content length: ${pdfContent.length} characters`
+    )
+
+    return NextResponse.json({ 
+      success: true, 
+      submissionId: submission.id 
+    })
+  } catch (error) {
+    console.error('Legislation submission error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
