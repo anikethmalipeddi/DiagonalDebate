@@ -161,7 +161,7 @@ const generateLessonsFromFiles = (): Lesson[] => {
 
   // Lesson-specific objectives
   const lessonObjectives: { [key: string]: string[] } = {
-    "General Overview + Schedule": [
+    "General-Overview-Schedule-WACFL-1": [
       "Understand the structure of the debate season",
       "Familiarize with key dates and milestones",
       "Set personal goals for WACFL tournaments"
@@ -171,27 +171,27 @@ const generateLessonsFromFiles = (): Lesson[] => {
       "Understand chamber procedures",
       "Identify key roles and responsibilities"
     ],
-    "Speech Structures + Round Strategy": [
+    "Speech-Structures-Round-Strategy-Overview": [
       "Master speech organization",
       "Develop round strategies",
       "Practice transitions and signposting"
     ],
-    "Intros + Rhetoric": [
+    "Intros-Rhetoric-How-to": [
       "Craft engaging introductions",
       "Apply rhetorical devices",
       "Capture audience attention"
     ],
-    "Presentation & Delivery": [
+    "Presentation-Delivery-How-to": [
       "Improve vocal delivery",
       "Enhance body language",
       "Build confidence in public speaking"
     ],
-    "Argument Construction": [
+    "Argument-Construction": [
       "Structure arguments logically",
       "Support claims with evidence",
       "Avoid logical fallacies"
     ],
-    "Logical Reasoning": [
+    "Logical-Reasoning-How-to": [
       "Apply critical thinking",
       "Identify logical flaws",
       "Strengthen argument validity"
@@ -201,7 +201,7 @@ const generateLessonsFromFiles = (): Lesson[] => {
       "Practice with real examples",
       "Organize evidence effectively"
     ],
-    "Introduction to Refutation & Weighing": [
+    "Introduction-to-Refutation-Weighing": [
       "Learn refutation basics",
       "Practice weighing arguments",
       "Respond to opposing claims"
@@ -211,7 +211,7 @@ const generateLessonsFromFiles = (): Lesson[] => {
       "Defend your arguments",
       "Turn opponent points"
     ],
-    "Cross Examination": [
+    "Cross-Examination": [
       "Ask effective questions",
       "Expose weaknesses in arguments",
       "Control the narrative"
@@ -226,12 +226,12 @@ const generateLessonsFromFiles = (): Lesson[] => {
       "Participate in chamber business",
       "Apply procedure in rounds"
     ],
-    "Presiding Guide": [
+    "Presiding-Guide-RR": [
       "Learn presiding officer duties",
       "Manage debate sessions",
       "Ensure fair proceedings"
     ],
-    "Legislation, Civics, & Research": [
+    "Legislation-Civics-Research-How-to": [
       "Research legislation effectively",
       "Understand civic processes",
       "Develop policy expertise"
@@ -241,12 +241,12 @@ const generateLessonsFromFiles = (): Lesson[] => {
       "Practice under timed conditions",
       "Receive actionable feedback"
     ],
-    "Advanced Rhetoric": [
+    "Advanced-Rhetoric-How-to": [
       "Use advanced rhetorical strategies",
       "Persuade diverse audiences",
       "Refine speaking style"
     ],
-    "Argument Generation Bonus Lecture": [
+    "Argument-Generation-Bonus-Lecture-2025": [
       "Generate creative arguments",
       "Adapt to any topic",
       "Think on your feet"
@@ -364,24 +364,24 @@ const determineDifficulty = (fileName: string): string => {
 
 const generateDescription = (title: string, category: string, difficulty: string): string => {
   const descriptions: { [key: string]: string } = {
-    "General Overview + Schedule 'til WACFL 1": "Complete overview of the debate season with schedule and key milestones for WACFL tournaments.",
+    "General-Overview-Schedule-WACFL-1": "Complete overview of the debate season with schedule and key milestones for WACFL tournaments.",
     "Congressional Debate Basics": "Essential introduction to congressional debate format, procedures, and fundamental concepts.",
-    "Speech Structures + Round Strategy": "Master the art of structuring effective speeches and developing winning round strategies.",
-    "Intros + Rhetoric": "Learn powerful introduction techniques and advanced rhetorical devices to captivate your audience.",
-    "Presentation & Delivery": "Perfect your speaking delivery, body language, and presentation skills for maximum impact.",
-    "Argument Construction": "Build compelling arguments with proper structure, evidence, and logical reasoning.",
-    "Logical Reasoning": "Develop critical thinking skills and master logical argumentation techniques.",
+    "Speech-Structures-Round-Strategy-Overview": "Master the art of structuring effective speeches and developing winning round strategies.",
+    "Intros-Rhetoric-How-to": "Learn powerful introduction techniques and advanced rhetorical devices to captivate your audience.",
+    "Presentation-Delivery-How-to": "Perfect your speaking delivery, body language, and presentation skills for maximum impact.",
+    "Argument-Construction": "Build compelling arguments with proper structure, evidence, and logical reasoning.",
+    "Logical-Reasoning-How-to": "Develop critical thinking skills and master logical argumentation techniques.",
     "Contention Structure Practice": "Practice building and organizing contentions with hands-on exercises and examples.",
-    "Introduction to Refutation & Weighing": "Learn the fundamentals of refuting arguments and weighing competing claims.",
+    "Introduction-to-Refutation-Weighing": "Learn the fundamentals of refuting arguments and weighing competing claims.",
     "Refutations": "Advanced techniques for effectively refuting opponent arguments and defending your positions.",
-    "Cross Examination": "Master the art of cross-examination to strengthen your arguments and weaken opponents.",
+    "Cross-Examination": "Master the art of cross-examination to strengthen your arguments and weaken opponents.",
     "Impacting": "Learn how to effectively impact your arguments and demonstrate their significance.",
     "Parliamentary Procedure": "Understand parliamentary procedure and chamber rules for effective debate participation.",
-    "Presiding Guide": "Complete guide to presiding over congressional debate sessions and managing chamber procedures.",
-    "Legislation, Civics, & Research": "Learn how to research legislation, understand civics, and develop policy expertise.",
+    "Presiding-Guide-RR": "Complete guide to presiding over congressional debate sessions and managing chamber procedures.",
+    "Legislation-Civics-Research-How-to": "Learn how to research legislation, understand civics, and develop policy expertise.",
     "Practice Drills": "Interactive practice exercises to reinforce debate skills and improve performance.",
-    "Advanced Rhetoric": "Advanced rhetorical techniques and persuasive speaking strategies for experienced debaters.",
-    "Argument Generation Bonus Lecture": "Bonus content on generating creative and effective arguments for any topic.",
+    "Advanced-Rhetoric-How-to": "Advanced rhetorical techniques and persuasive speaking strategies for experienced debaters.",
+    "Argument-Generation-Bonus-Lecture-2025": "Bonus content on generating creative and effective arguments for any topic.",
     "Extemporaneous-Speaking-Textbook": "Comprehensive textbook covering all aspects of extemporaneous speaking."
   }
   
