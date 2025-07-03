@@ -71,7 +71,7 @@ DiagonalDebate is a full-stack web application designed to support debate educat
    ```
 
 6. **Access the app:**
-   - Open [http://localhost:3000](http://localhost:3000) in your browser.
+   - Open with localhost in your browser.
 
 ### Email Configuration
 
@@ -110,7 +110,7 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 
 ## License
 
-[MIT](LICENSE) (or specify your license here)
+[MIT](LICENSE)
 
 ---
 
