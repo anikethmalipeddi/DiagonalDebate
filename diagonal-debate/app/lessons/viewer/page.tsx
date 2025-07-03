@@ -1,4 +1,5 @@
 "use client";
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 const PDFViewer = dynamic(() => import("../../components/PDFViewer"), { ssr: false });
 
-export default function LessonViewerPage() {
+function LessonViewerPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const file = searchParams.get("file");
@@ -52,5 +53,13 @@ export default function LessonViewerPage() {
       {/* PDFViewer in fullscreen mode only */}
       <PDFViewer file={file} initialFullscreen={true} onExit={handleExitLesson} />
     </div>
+  );
+}
+
+export default function LessonViewerPage() {
+  return (
+    <Suspense fallback={<div>Loading lesson...</div>}>
+      <LessonViewerPageInner />
+    </Suspense>
   );
 } 
