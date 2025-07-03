@@ -890,11 +890,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const { title, description, pdfContent, pdfText } = await request.json()
+    const reqBody = await request.json()
+    const { title, pdfContent } = reqBody;
 
-    if (!title || !description || !pdfContent) {
+    if (!title || !pdfContent) {
       return NextResponse.json(
-        { error: 'Title, description, and PDF content are required' },
+        { error: 'Title and PDF content are required' },
         { status: 400 }
       )
     }
@@ -903,19 +904,54 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const submission = await prisma.legislationSubmission.create({
       data: {
         id: randomUUID(),
-        userId: user.id,
+        submittedBy: user.id,
+        type: reqBody.type || '',
+        category: reqBody.category || '',
+        number: reqBody.number || '',
         title,
-        description,
-        pdfContent,
-        pdfText: pdfText || null
+        content: reqBody.content || '',
+        overallScore: reqBody.feedback?.overallScore || 0,
+        templateErrors: JSON.stringify(reqBody.feedback?.templateErrors || []),
+        grammarSpellingErrors: JSON.stringify(reqBody.feedback?.grammarSpellingErrors || []),
+        readabilityScore: reqBody.feedback?.readability?.score || 0,
+        readabilitySuggestions: JSON.stringify(reqBody.feedback?.readability?.suggestions || []),
+        aiSuggestions: JSON.stringify(reqBody.feedback?.aiSuggestions || []),
+        isSubmittable: reqBody.feedback?.isSubmittable || false,
+        status: 'submitted',
+        submittedAt: new Date(),
+        reviewedBy: null,
+        reviewedAt: null,
+        reviewNotes: null
       }
     })
 
-    // Send email notification
-    await sendEmail(
-      'New Legislation Submission',
-      `New legislation submission received:\n\nTitle: ${title}\nDescription: ${description}\nSubmitted by: ${user.name} (${user.email})\n\nPDF content length: ${pdfContent.length} characters`
-    )
+    // Generate the PDF buffer using the actual user's name
+    const pdfDoc = await generateLegislationPDF(
+      reqBody.type,
+      reqBody.category,
+      reqBody.number,
+      title,
+      reqBody.content,
+      user.name || user.email
+    );
+    const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      pdfDoc.on('data', (chunk) => chunks.push(chunk));
+      pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+      pdfDoc.on('error', reject);
+    });
+
+    // Send email notification with PDF attachment and updated review message
+    await emailToCaptains(pdfBuffer, {
+      type: reqBody.type,
+      category: reqBody.category,
+      number: reqBody.number,
+      title,
+      content: reqBody.content,
+      submittedBy: user.name || user.email,
+      submittedAt: new Date(),
+      
+    });
 
     return NextResponse.json({ 
       success: true, 

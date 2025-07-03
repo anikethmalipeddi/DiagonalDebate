@@ -31,7 +31,7 @@ export async function POST(
 ) {
   try {
     const { lessonFileName } = await params;
-    const user = await getCurrentUser();
+  const user = await getCurrentUser();
     
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

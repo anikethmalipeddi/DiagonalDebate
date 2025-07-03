@@ -16,8 +16,10 @@ export async function GET(
     const ratings = await prisma.lessonRating.findMany({
       where: { lessonFileName }
     });
-    const count = ratings.length;
-    const average = ratings.length > 0 ? ratings.reduce((sum: any, r: any) => sum + r.rating, 0) / ratings.length : 0;
+    // Only include ratings >= 3 in the average and count
+    const validRatings = ratings.filter((r: any) => r.rating >= 3);
+    const count = validRatings.length;
+    const average = count > 0 ? validRatings.reduce((sum: any, r: any) => sum + r.rating, 0) / count : 0;
     const userRating = ratings.find((r: any) => r.userId === userId)?.rating || null;
 
     return NextResponse.json({ averageRating: average, count, userRating });
@@ -35,28 +37,23 @@ export async function POST(
   try {
     const { lessonFileName } = await params;
     const user = await getCurrentUser();
-    
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-
-    const { rating, comment } = await request.json();
-    
+    const { rating } = await request.json();
     if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
     }
-
     // Check if user already rated this lesson
     const existingRating = await prisma.lessonRating.findFirst({
       where: { lessonFileName, userId: user.id }
     });
-
     let ratingRecord;
     if (existingRating) {
       // Update existing rating
       ratingRecord = await prisma.lessonRating.update({
         where: { id: existingRating.id },
-        data: { rating, comment: comment || null }
+        data: { rating }
       });
     } else {
       // Create new rating
@@ -64,18 +61,16 @@ export async function POST(
         data: {
           lessonFileName,
           userId: user.id,
-          rating,
-          comment: comment || null
+          rating
         }
       });
     }
-
-    // Fetch updated average
+    // Fetch updated average (only ratings >= 3)
     const ratings = await prisma.lessonRating.findMany({ where: { lessonFileName } });
-    const count = ratings.length;
-    const average = ratings.length > 0 ? ratings.reduce((sum: any, r: any) => sum + r.rating, 0) / ratings.length : 0;
+    const validRatings = ratings.filter((r: any) => r.rating >= 3);
+    const count = validRatings.length;
+    const average = count > 0 ? validRatings.reduce((sum: any, r: any) => sum + r.rating, 0) / count : 0;
     const userRating = ratings.find((r: any) => r.userId === user.id)?.rating || null;
-
     return NextResponse.json({ averageRating: average, count, userRating: rating });
   } catch (error) {
     console.error('Error submitting lesson rating:', error);

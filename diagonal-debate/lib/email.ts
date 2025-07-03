@@ -78,14 +78,14 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
           <hr style="margin: 24px 0;">
           <h3 style="color: #2a4365;">Review Process</h3>
           <p style="margin-bottom: 16px;">
-            <strong>This legislation has already been reviewed by the student leadership team</strong> for completeness, formatting, and adherence to submission guidelines. It has passed initial checks and is now being sent to the captain(s) for final review and action.
+            <strong>This legislation has already been reviewed by the DiagonalDebate platform</strong> for completeness, formatting, and adherence to submission guidelines. It has passed initial checks and is now being sent to the captain(s) for final review and action.
           </p>
           <p style="font-size: 0.95em; color: #555;">If you have any questions or need further information, please reply to this email.</p>
         </div>
       `,
       attachments: [
         {
-          filename: `${legislationData.type}_${legislationData.category}_${legislationData.number}_by_${legislationData.submittedBy.replace(/\s+/g, '_')}.pdf`,
+          filename: `${legislationData.number}.pdf`,
           content: pdfBuffer,
           contentType: 'application/pdf'
         }

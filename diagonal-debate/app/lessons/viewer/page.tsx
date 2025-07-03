@@ -29,14 +29,11 @@ function LessonViewerPageInner() {
   }, [lessonFileName]);
 
   const handleExitLesson = () => {
-    // Mark lesson as completed for first-time visitors
-    if (isFirstVisit && lessonFileName) {
+    if (lessonFileName) {
+      localStorage.setItem('showRatingModal', lessonFileName);
       const lessonKey = `lesson_${lessonFileName}`;
       localStorage.setItem(lessonKey, 'completed');
-      // Set flag to show rating modal on lessons page
-      localStorage.setItem('showRatingModal', lessonFileName);
     }
-    // Return to lessons page
     router.push('/lessons');
   };
 

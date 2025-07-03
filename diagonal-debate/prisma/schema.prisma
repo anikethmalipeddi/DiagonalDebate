@@ -72,12 +72,20 @@ model PasswordResetToken {
   user      User     @relation(fields: [userId], references: [id])
 }
 
+model Event {
+  id        String   @id @default(uuid())
+  title     String
+  date      DateTime
+  signups   EventSignup[]
+}
+
 model EventSignup {
   id        String   @id @default(uuid())
   userId    String
   eventId   String
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+  event     Event?   @relation(fields: [eventId], references: [id])
 }
 
 model LegislationSubmission {

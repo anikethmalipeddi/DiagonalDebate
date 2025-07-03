@@ -154,9 +154,9 @@ export default function LegislationCheckerPage() {
     const name = userFirstName.toLowerCase()
     let warning = ""
 
-    // 1. Block title in body
-    if (body && (body.includes(title) && title.length > 0)) {
-      warning = "Do not include the title in the body of your legislation."
+    // 1. Block title in body (new: only if title is at least 8 chars and not empty)
+    if (body && title && title.length >= 8 && body.includes(title)) {
+      warning = "Do not type or paste your legislation's title in the body text. Only include the body of your legislation here."
     }
     // 2. Block user's name in body
     else if (body && name && name.length > 0 && body.includes(name)) {
@@ -394,6 +394,29 @@ export default function LegislationCheckerPage() {
     setIsSubmitting(true)
     console.log('Set isSubmitting to true')
     try {
+      // 1. Generate the PDF via backend
+      const pdfRes = await fetch('/api/legislation-checker/test-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: formData.type,
+          category: formData.category,
+          number: formData.number,
+          title: formData.title,
+          content: formData.text,
+          submitterName: userFullName || 'Unknown',
+        }),
+      })
+      if (!pdfRes.ok) {
+        toast.error("PDF Generation Failed", { description: "Could not generate PDF for submission." })
+        setIsSubmitting(false)
+        return
+      }
+      const pdfArrayBuffer = await pdfRes.arrayBuffer()
+      // Convert ArrayBuffer to base64
+      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)))
+
+      // 2. Submit to captains with PDF content
       console.log('Making API call to /api/legislation-checker/submit')
       const response = await fetch('/api/legislation-checker/submit', {
         method: 'POST',
@@ -405,6 +428,8 @@ export default function LegislationCheckerPage() {
           category: formData.category,
           number: formData.number,
           title: formData.title,
+          description: 'No description provided', // TODO: Replace with real description field
+          pdfContent: pdfBase64,
           content: formData.text,
           feedback: {
             overallScore: getOverallScore(),
@@ -489,12 +514,16 @@ export default function LegislationCheckerPage() {
     const hasItems = items.length > 0
     const finalBadgeClass = hasItems ? badgeClass : "bg-green-100 text-green-800"
     const IconComponent = icon
+    // Use a green puzzle piece for Template Compliance when no issues
+    const isTemplate = title === "Template Compliance"
 
     return (
       <div className="space-y-4">
         <div className="flex items-center space-x-3">
           {hasItems ? (
             <IconComponent className={`w-6 h-6 ${iconColor}`} />
+          ) : isTemplate ? (
+            <Puzzle className="w-6 h-6 text-green-600" />
           ) : (
             <CheckCircle className="w-6 h-6 text-green-600" />
           )}
@@ -512,8 +541,8 @@ export default function LegislationCheckerPage() {
         ) : (
           <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-green-200 rounded-xl bg-green-50">
             <CheckCircle2 className="w-16 h-16 text-green-500 mb-3" />
-            <p className="text-lg font-semibold text-green-700 mb-1">Perfect!</p>
-            <p className="text-sm text-green-600">No issues found in this category.</p>
+            <p className="text-lg font-semibold text-green-700 mb-1">No issues found in this category.</p>
+            <p className="text-sm text-green-600">Everything looks good!</p>
           </div>
         )}
       </div>
@@ -766,9 +795,8 @@ export default function LegislationCheckerPage() {
                       className="w-full"
                     >
                       {isLoading ? (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center">
                           <Sparkles className="w-5 h-5 animate-spin" />
-                          <span>Analyzing...</span>
                         </div>
                       ) : (
                         <div className="flex items-center space-x-2">
@@ -798,16 +826,13 @@ export default function LegislationCheckerPage() {
                                     : "Submit to your team captains"
                         }
                       >
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center">
                           {isSubmitting ? (
-                            <>
-                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              <span>Submitting...</span>
-                            </>
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                           ) : (
                             <>
                               <Send className="w-5 h-5" />
-                              <span>Submit to Captains</span>
+                              <span className="ml-2">Submit to Captains</span>
                             </>
                           )}
                         </div>
@@ -870,14 +895,34 @@ export default function LegislationCheckerPage() {
                     </div>
                   ) : isReviewed ? (
                     <Tabs defaultValue="template" className="w-full">
-                      <TabsList className="w-full gap-0 bg-gray-100 p-1 rounded-lg overflow-x-auto whitespace-nowrap flex">
-                        <TabsTrigger value="template"><Puzzle className="w-4 h-4" />Template</TabsTrigger>
-                        <TabsTrigger value="grammarSpelling"><CheckCircle className="w-4 h-4" />Grammar</TabsTrigger>
-                        <TabsTrigger value="readability"><BookOpen className="w-4 h-4" />Readability</TabsTrigger>
-                        <TabsTrigger value="ai"><Sparkles className="w-4 h-4" />AI Tips</TabsTrigger>
+                      <TabsList className="w-full gap-0 bg-gray-100 p-1 rounded-lg flex">
+                        <TabsTrigger value="template" className="flex-1 flex flex-row items-center justify-center gap-1 min-w-0 text-xs font-semibold data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-none data-[state=active]:rounded-lg data-[state=inactive]:bg-transparent data-[state=inactive]:text-red-600 data-[state=inactive]:shadow-none border-none max-w-[140px] h-10">
+                          <span className="flex items-center min-w-0">
+                            <Puzzle className="w-5 h-5 flex-shrink-0" />
+                            <span className="ml-1">Template</span>
+                          </span>
+                        </TabsTrigger>
+                        <TabsTrigger value="grammarSpelling" className="flex-1 flex flex-row items-center justify-center gap-1 min-w-0 text-xs font-semibold data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-none data-[state=active]:rounded-lg data-[state=inactive]:bg-transparent data-[state=inactive]:text-red-600 data-[state=inactive]:shadow-none border-none max-w-[140px] h-10">
+                          <span className="flex items-center min-w-0">
+                            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                            <span className="ml-1">Grammar</span>
+                          </span>
+                        </TabsTrigger>
+                        <TabsTrigger value="readability" className="flex-1 flex flex-row items-center justify-center gap-1 min-w-0 text-xs font-semibold data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-none data-[state=active]:rounded-lg data-[state=inactive]:bg-transparent data-[state=inactive]:text-red-600 data-[state=inactive]:shadow-none border-none max-w-[160px] h-10">
+                          <span className="flex items-center min-w-0">
+                            <BookOpen className="w-5 h-5 flex-shrink-0" />
+                            <span className="ml-1">Readability</span>
+                          </span>
+                        </TabsTrigger>
+                        <TabsTrigger value="ai" className="flex-1 flex flex-row items-center justify-center gap-1 min-w-0 text-xs font-semibold data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-none data-[state=active]:rounded-lg data-[state=inactive]:bg-transparent data-[state=inactive]:text-red-600 data-[state=inactive]:shadow-none border-none max-w-[140px] h-10">
+                          <span className="flex items-center min-w-0">
+                            <Sparkles className="w-5 h-5 flex-shrink-0" />
+                            <span className="ml-1">AI Tips</span>
+                          </span>
+                        </TabsTrigger>
                       </TabsList>
 
-                      <div className="mt-6">
+                      <div className="mt-6 bg-gray-50 rounded-xl p-6 shadow-inner">
                         <TabsContent value="template">
                           {renderFeedbackContent(
                             "Template Compliance",
@@ -892,7 +937,7 @@ export default function LegislationCheckerPage() {
                         <TabsContent value="grammarSpelling">
                           <div className="space-y-4">
                             <div className="flex items-center space-x-3">
-                              <CheckCircle className="w-6 h-6 text-blue-600" />
+                              <CheckCircle className="w-6 h-6 text-green-600" />
                               <h3 className="font-semibold text-gray-900 text-lg">Grammar & Spelling</h3>
                               <Badge
                                 className={
@@ -937,8 +982,8 @@ export default function LegislationCheckerPage() {
                             ) : (
                               <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-green-200 rounded-xl bg-green-50">
                                 <CheckCircle2 className="w-16 h-16 text-green-500 mb-3" />
-                                <p className="text-lg font-semibold text-green-700 mb-1">Perfect Grammar!</p>
-                                <p className="text-sm text-green-600">No grammar or spelling errors detected.</p>
+                                <p className="text-lg font-semibold text-green-700 mb-1">No issues found in this category.</p>
+                                <p className="text-sm text-green-600">Everything looks good!</p>
                               </div>
                             )}
                           </div>
@@ -947,13 +992,13 @@ export default function LegislationCheckerPage() {
                         <TabsContent value="readability">
                           <div className="space-y-4">
                             <div className="flex items-center space-x-3">
-                              <BookOpen className="w-6 h-6 text-green-600" />
+                              {(() => { console.log('Readability Content Icon:', BookOpen); return <BookOpen className="w-6 h-6" /> })()}
                               <h3 className="font-semibold text-gray-900 text-lg">Readability Analysis</h3>
                               <Badge className="bg-green-100 text-green-800 px-3 py-1 text-sm font-medium">
                                 Score: {feedback.readability.score}/100
                               </Badge>
                             </div>
-                            <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm mb-4">
                               <div className="flex justify-between text-sm mb-2">
                                 <span className="text-gray-600">Readability Score</span>
                                 <span className="text-gray-900 font-medium">{feedback.readability.score}/100</span>
@@ -1017,5 +1062,5 @@ export default function LegislationCheckerPage() {
         </div>
       </section>
     </div>
-  )
+  );
 }
