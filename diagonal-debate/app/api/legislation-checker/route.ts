@@ -1,8 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimiter } from "@/lib/rateLimiter"
-import fs from 'fs'
-import path from 'path'
+import legislationTemplates from '@/data/legislationTemplates.json'
 
 // IMPORTANT: Set up your API key as an environment variable
 // Create a .env.local file in your project root and add:
@@ -16,20 +15,9 @@ const normalize = (str: string) => str.replace(/\s+/g, ' ').trim().toLowerCase()
 const checkTemplateErrors = (text: string, type: 'bill' | 'resolution' | 'amendment', category: string, number: string, title: string) => {
   const errors: string[] = []
   
-  // Read templates from the correct path
-  const templatesPath = path.join(process.cwd(), 'data', 'legislationTemplates.json')
-  let templates
-  try {
-    const templatesContent = fs.readFileSync(templatesPath, 'utf8')
-    templates = JSON.parse(templatesContent)
-  } catch (error) {
-    console.error('Error reading templates file:', error)
-    return errors
-  }
-
   // Bill template enforcement
   if (type === "bill") {
-    const template = templates.bill
+    const template = legislationTemplates.bill
     if (template.titlePattern && !normalize(title).startsWith(normalize(template.titlePattern))) {
       errors.push(`Title must start with: '${template.titlePattern}'. Your title: '${title.trim()}'`)
     }
@@ -45,8 +33,8 @@ const checkTemplateErrors = (text: string, type: 'bill' | 'resolution' | 'amendm
 
   // Resolution template enforcement
   if (type === "resolution") {
-    const template = templates.resolution
-    if (template.titlePattern && !title.trim().startsWith(template.titlePattern.trim())) {
+    const template = legislationTemplates.resolution
+    if (template.titlePattern && !normalize(title).startsWith(normalize(template.titlePattern))) {
       errors.push(`Title must start with: '${template.titlePattern}'. Your title: '${title.trim()}'`)
     }
     const whereasCount = (text.match(/WHEREAS,/gi) || []).length
@@ -60,8 +48,8 @@ const checkTemplateErrors = (text: string, type: 'bill' | 'resolution' | 'amendm
 
   // Amendment template enforcement
   if (type === "amendment") {
-    const template = templates.amendment
-    if (template.titlePattern && !title.trim().startsWith(template.titlePattern.trim())) {
+    const template = legislationTemplates.amendment
+    if (template.titlePattern && !normalize(title).startsWith(normalize(template.titlePattern))) {
       errors.push(`Title must start with: '${template.titlePattern}'. Your title: '${title.trim()}'`)
     }
     if (!normalize(text).includes(normalize(template.resolvedClause))) {

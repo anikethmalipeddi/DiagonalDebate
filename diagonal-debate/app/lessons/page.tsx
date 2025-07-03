@@ -518,16 +518,17 @@ export default function LessonsPage() {
   // Check for rating modal flag on mount
   useEffect(() => {
     const showRatingFlag = localStorage.getItem('showRatingModal');
-    if (showRatingFlag) {
-      setRatingLesson(showRatingFlag);
-      // Clear the flag
-      localStorage.removeItem('showRatingModal');
-      // Show modal with a delay for smooth fade-in, but only if logged in
-      setTimeout(() => {
-        if (isLoggedIn) {
-          setShowRatingModal(true);
-        }
-      }, 600);
+    if (showRatingFlag && isLoggedIn) {
+      // Check if the user has already rated this lesson
+      fetch(`/api/lessons/${encodeURIComponent(showRatingFlag)}/rating`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.userRating || data.userRating === 0) {
+            setRatingLesson(showRatingFlag);
+            setTimeout(() => setShowRatingModal(true), 500);
+          }
+          localStorage.removeItem('showRatingModal');
+        });
     }
   }, [isLoggedIn]);
 
@@ -788,6 +789,24 @@ export default function LessonsPage() {
     return matchesSearch && matchesCategory && matchesDifficulty && matchesPhase
   })
 
+  // Add useEffect to check for a flag in localStorage after PDF viewer exit
+  useEffect(() => {
+    const completedLesson = localStorage.getItem('completedLesson');
+    if (completedLesson) {
+      // Enroll the user for this lesson
+      fetch(`/api/lessons/${encodeURIComponent(completedLesson)}/enrollment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(res => res.json())
+        .then(data => {
+          setUserEnrollments(prev => ({ ...prev, [completedLesson]: true }));
+          setEnrolledLessons(prev => ({ ...prev, [completedLesson]: data.total }));
+          localStorage.removeItem('completedLesson');
+        });
+    }
+  }, []);
+
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Section */}
@@ -915,7 +934,7 @@ export default function LessonsPage() {
                           {lesson.description}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="flex flex-col flex-1 justify-between px-6 pb-6 pt-0">
+                      <CardContent className="min-h-[140px] flex flex-col justify-between px-4 pb-4 pt-0">
                         {/* Stats Row */}
                         <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
                           <div className="flex items-center space-x-1">
@@ -957,43 +976,14 @@ export default function LessonsPage() {
                           <Button
                             className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300"
                             type="button"
-                            onClick={async () => { 
-                              // If not enrolled, enroll the user first
-                              if (!userEnrollments[lesson.fileName]) {
-                                try {
-                                  const response = await fetch(`/api/lessons/${encodeURIComponent(lesson.fileName)}/enrollment`, {
-                                    method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                    },
-                                  });
-                                  
-                                  if (response.ok) {
-                                    const data = await response.json();
-                                    // Update local state to reflect enrollment
-                                    setUserEnrollments(prev => ({
-                                      ...prev,
-                                      [lesson.fileName]: true
-                                    }));
-                                    // Update the global count immediately with the response
-                                    setEnrolledLessons(prev => ({
-                                      ...prev,
-                                      [lesson.fileName]: data.total
-                                    }));
-                                  }
-                                } catch (error) {
-                                  console.error('Failed to enroll in lesson:', error);
-                                }
-                              }
-                              
-                              setSelectedLesson(lesson); 
-                              setShowPdf(true); 
+                            onClick={() => {
+                              setSelectedLesson(lesson);
+                              setShowPdf(true);
                             }}
                           >
                             <Play className="w-4 h-4 mr-2" />
                             <span>
                               {userEnrollments[lesson.fileName] ? "Revisit Lesson" : "Start Lesson"}
-                              {/* Debug: {JSON.stringify(userEnrollments[lesson.fileName])} */}
                             </span>
                           </Button>
                         </div>
@@ -1009,7 +999,7 @@ export default function LessonsPage() {
 
       {/* PDF Preview Dialog (small box) */}
       <Dialog open={showPdf} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-w-2xl w-full p-0 overflow-visible rounded-2xl shadow-2xl border-2 border-red-200 bg-white flex flex-col items-center" style={{ minHeight: 'unset', paddingTop: 0, paddingBottom: 0 }}>
+        <DialogContent className="max-w-2xl w-full p-0 overflow-visible rounded-2xl shadow-2xl border-2 border-red-200 bg-white flex flex-col items-center min-h-[500px]" style={{ minHeight: '500px', paddingTop: 0, paddingBottom: 0 }}>
           {/* DialogTitle for accessibility (visually hidden) */}
           <DialogTitle className="sr-only">Lesson Preview</DialogTitle>
           {/* Custom Close Button */}
@@ -1036,7 +1026,9 @@ export default function LessonsPage() {
           <div className="w-full flex flex-col items-center justify-center px-6 pb-4">
             {/* PDF first page thumbnail */}
             <div className="w-[400px] h-[180px] bg-gray-100 rounded-lg flex items-center justify-center mb-4 border border-gray-200 overflow-hidden">
-              {selectedLesson && <PDFPreview file={selectedLesson.pdfUrl} />}
+              {selectedLesson
+                ? <PDFPreview file={selectedLesson.pdfUrl} />
+                : <div className="animate-pulse w-full h-full bg-gray-200" />}
             </div>
             {/* Lesson Info */}
             {selectedLesson && (
@@ -1069,34 +1061,6 @@ export default function LessonsPage() {
             <button
               onClick={async () => {
                 if (selectedLesson) {
-                  // If not enrolled, enroll the user first
-                  if (!userEnrollments[selectedLesson.fileName]) {
-                    try {
-                      const response = await fetch(`/api/lessons/${encodeURIComponent(selectedLesson.fileName)}/enrollment`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                      });
-                      
-                      if (response.ok) {
-                        const data = await response.json();
-                        // Update local state to reflect enrollment
-                        setUserEnrollments(prev => ({
-                          ...prev,
-                          [selectedLesson.fileName]: true
-                        }));
-                        // Update the global count immediately with the response
-                        setEnrolledLessons(prev => ({
-                          ...prev,
-                          [selectedLesson.fileName]: data.total
-                        }));
-                      }
-                    } catch (error) {
-                      console.error('Failed to enroll in lesson:', error);
-                    }
-                  }
-                  
                   router.push(`/lessons/viewer?file=${encodeURIComponent(selectedLesson.pdfUrl)}`);
                   setShowPdf(false);
                 }
@@ -1120,7 +1084,7 @@ export default function LessonsPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-2">How was this lesson?</h2>
               <p className="text-gray-600 mb-2">Your feedback helps us improve our content!</p>
               <p className="text-sm font-medium text-red-600">
-                {ratingLesson?.replace('.pdf', '')}
+                {lessons.find(l => l.fileName === ratingLesson)?.title || ratingLesson.replace('.pdf', '')}
               </p>
             </div>
 

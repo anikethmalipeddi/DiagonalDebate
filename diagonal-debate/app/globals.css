@@ -92,3 +92,24 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@font-face {
+  font-family: 'Times New Roman';
+  src: url('/fonts/timesNewRoman.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Times New Roman Bold';
+  src: url('/fonts/timesnewromanbold.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Times New Roman Bold Italic';
+  src: url('/fonts/timesnewromanbolditalic.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Times New Roman Italic';
+  src: url('/fonts/timesnewromanitalic.ttf') format('truetype');
+  font-display: swap;
+}

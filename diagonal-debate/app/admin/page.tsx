@@ -9,7 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { prisma } from '@/lib/prisma'
 
-const ADMIN_EMAILS = ["aniketh.malipeddi@gmail.com"]
+const ADMIN_EMAILS = [
+  "aniketh.malipeddi@gmail.com",
+  "anikethmalipeddi@gmail.com"
+]
 
 export default async function AdminPage() {
   const currentUser = await getCurrentUser()
@@ -25,7 +28,7 @@ export default async function AdminPage() {
       lessonEnrollments: true,
     },
   })
-
+  
   // Fetch lesson enrollments and ratings
   const lessonEnrollments = await prisma.lessonEnrollment.findMany({
     include: { user: true },
@@ -42,11 +45,10 @@ export default async function AdminPage() {
     orderBy: { createdAt: 'desc' },
   })
 
-  // Mock events data (since we don't have an events table yet)
-  const events = [
-    { id: '1', title: 'Mock Event 1', date: '2024-01-01' },
-    { id: '2', title: 'Mock Event 2', date: '2024-01-02' },
-  ]
+  // Fetch real events from the database
+  const events = await prisma.event.findMany({
+    orderBy: { date: 'asc' },
+  });
 
   const totalUsers = usersWithLessons.length
   const totalLessonEnrollments = lessonEnrollments.length
@@ -54,25 +56,20 @@ export default async function AdminPage() {
 
   const totalEvents = events.length
 
-  const eventsWithSignups = events.map(async (event: any) => {
-    const signupsForEvent = await prisma.signup.findMany({
-      where: {
-        eventId: event.id
-      },
-      include: {
-        user: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
-    const signedUpUsers = signupsForEvent.map((signup: any) => signup.user.name)
+  // Await all event signups promises
+  const eventsWithSignups = await Promise.all(events.map(async (event: ReturnType<typeof prisma.event.findMany>[number]) => {
+    const signupsForEvent = await prisma.eventSignup.findMany({
+      where: { eventId: event.id },
+      include: { user: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    const signedUpUsers = signupsForEvent.map((signup) => signup.user?.name || signup.user?.email || 'Unknown');
     return {
       ...event,
       signupCount: signupsForEvent.length,
-      signedUpUsers: signedUpUsers
-    }
-  })
+      signedUpUsers
+    };
+  }));
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -162,11 +159,11 @@ export default async function AdminPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {event.signedUpUsers.length > 0 ? (
+                          {Array.isArray(event.signedUpUsers) && event.signedUpUsers.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                                {event.signedUpUsers.map((name: string, index: number) => (
+                              {event.signedUpUsers.map((name: string, index: number) => (
                                 <Badge key={index} variant="outline" className="font-normal">{name}</Badge>
-                                ))}
+                              ))}
                             </div>
                           ) : (
                             <span className="text-xs text-gray-500">No one signed up</span>
