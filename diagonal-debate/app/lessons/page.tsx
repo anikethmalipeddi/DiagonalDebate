@@ -36,25 +36,25 @@ interface Lesson {
 
 // Mapping from filename to user-friendly lesson title
 const lessonTitles: { [key: string]: string } = {
-  "general-overview-schedule-wacfl-1.pdf": "General Overview & Schedule (WACFL 1)",
-  "congressional-debate-basics.pdf": "Congressional Debate Basics",
-  "presentation-delivery-how-to.pdf": "Presentation & Delivery: How To",
-  "intros-rhetoric-how-to.pdf": "Intros & Rhetoric: How To",
-  "speech-structures-round-strategy-overview.pdf": "Speech Structures & Round Strategy Overview",
-  "argument-construction.pdf": "Argument Construction",
-  "logical-reasoning-how-to.pdf": "Logical Reasoning: How To",
-  "contention-structure-practice.pdf": "Contention Structure Practice",
+  "general-overview-schedule-wacfl-1.pdf": "Debate Season Overview & Key Dates",
+  "congressional-debate-basics.pdf": "Congressional Debate: The Basics",
+  "presentation-delivery-how-to.pdf": "Mastering Presentation & Delivery",
+  "intros-rhetoric-how-to.pdf": "Crafting Powerful Introductions & Rhetoric",
+  "speech-structures-round-strategy-overview.pdf": "Speech Structure & Round Strategy Essentials",
+  "argument-construction.pdf": "Building Strong Arguments",
+  "logical-reasoning-how-to.pdf": "Logical Reasoning for Debaters",
+  "contention-structure-practice.pdf": "Practicing Contention Structure",
   "introduction-to-refutation-weighing.pdf": "Introduction to Refutation & Weighing",
-  "refutations-2025.pdf": "Refutations (2025)",
-  "cross-examination.pdf": "Cross Examination",
-  "impacting-how-to.pdf": "Impacting: How To",
-  "parliamentary-procedure.pdf": "Parliamentary Procedure",
-  "presiding-guide-rr.pdf": "Presiding Guide (RR)",
-  "legislation-civics-research-how-to.pdf": "Legislation, Civics & Research: How To",
-  "practice-drills.pdf": "Practice Drills",
-  "advanced-rhetoric-how-to.pdf": "Advanced Rhetoric: How To",
-  "argument-generation-bonus-lecture-2025.pdf": "Argument Generation (Bonus Lecture 2025)",
-  "extemporaneous-speaking-textbook.pdf": "Extemporaneous Speaking Textbook"
+  "refutations-2025.pdf": "Advanced Refutation Techniques (2025)",
+  "cross-examination.pdf": "Cross-Examination Skills",
+  "impacting-how-to.pdf": "Impacting: Making Arguments Matter",
+  "parliamentary-procedure.pdf": "Parliamentary Procedure Demystified",
+  "presiding-guide-rr.pdf": "Guide to Presiding Officer Roles",
+  "legislation-civics-research-how-to.pdf": "Researching Legislation & Civics",
+  "practice-drills.pdf": "Debate Practice Drills",
+  "advanced-rhetoric-how-to.pdf": "Advanced Rhetoric & Persuasion",
+  "argument-generation-bonus-lecture-2025.pdf": "Creative Argument Generation (Bonus 2025)",
+  "extemporaneous-speaking-textbook.pdf": "Extemporaneous Speaking: Complete Guide"
 }
 
 // Dynamic lesson generation based on PDF files
