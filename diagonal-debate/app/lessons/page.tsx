@@ -34,56 +34,52 @@ interface Lesson {
   phase: string
 }
 
+// Mapping from filename to user-friendly lesson title
+const lessonTitles: { [key: string]: string } = {
+  "general-overview-schedule-wacfl-1.pdf": "General Overview & Schedule (WACFL 1)",
+  "congressional-debate-basics.pdf": "Congressional Debate Basics",
+  "presentation-delivery-how-to.pdf": "Presentation & Delivery: How To",
+  "intros-rhetoric-how-to.pdf": "Intros & Rhetoric: How To",
+  "speech-structures-round-strategy-overview.pdf": "Speech Structures & Round Strategy Overview",
+  "argument-construction.pdf": "Argument Construction",
+  "logical-reasoning-how-to.pdf": "Logical Reasoning: How To",
+  "contention-structure-practice.pdf": "Contention Structure Practice",
+  "introduction-to-refutation-weighing.pdf": "Introduction to Refutation & Weighing",
+  "refutations-2025.pdf": "Refutations (2025)",
+  "cross-examination.pdf": "Cross Examination",
+  "impacting-how-to.pdf": "Impacting: How To",
+  "parliamentary-procedure.pdf": "Parliamentary Procedure",
+  "presiding-guide-rr.pdf": "Presiding Guide (RR)",
+  "legislation-civics-research-how-to.pdf": "Legislation, Civics & Research: How To",
+  "practice-drills.pdf": "Practice Drills",
+  "advanced-rhetoric-how-to.pdf": "Advanced Rhetoric: How To",
+  "argument-generation-bonus-lecture-2025.pdf": "Argument Generation (Bonus Lecture 2025)",
+  "extemporaneous-speaking-textbook.pdf": "Extemporaneous Speaking Textbook"
+}
+
 // Dynamic lesson generation based on PDF files
 const generateLessonsFromFiles = (): Lesson[] => {
   // All actual PDF files from /public/lessons/ directory
   // Organized in proper learning sequence for beginner debaters
   const lessonFiles: string[] = [
-    // PHASE 1: FOUNDATION (Beginner - Start Here)
-    // 1.1 Understanding the basics and overview
     "general-overview-schedule-wacfl-1.pdf",
     "congressional-debate-basics.pdf",
-    
-    // 1.2 Core speaking fundamentals
     "presentation-delivery-how-to.pdf",
     "intros-rhetoric-how-to.pdf",
-    
-    // PHASE 2: STRUCTURE & ARGUMENTATION (Beginner-Intermediate)
-    // 2.1 Speech structure and strategy
     "speech-structures-round-strategy-overview.pdf",
     "argument-construction.pdf",
-    
-    // 2.2 Logical reasoning and contention building
     "logical-reasoning-how-to.pdf",
     "contention-structure-practice.pdf",
-    
-    // PHASE 3: REFUTATION & ANALYSIS (Intermediate)
-    // 3.1 Refutation fundamentals
     "introduction-to-refutation-weighing.pdf",
     "refutations-2025.pdf",
-    
-    // 3.2 Cross-examination and impacting
     "cross-examination.pdf",
     "impacting-how-to.pdf",
-    
-    // PHASE 4: PROCEDURE & RESEARCH (Intermediate)
-    // 4.1 Parliamentary procedure
     "parliamentary-procedure.pdf",
     "presiding-guide-rr.pdf",
-    
-    // 4.2 Research and legislation
     "legislation-civics-research-how-to.pdf",
-    
-    // PHASE 5: PRACTICE & ADVANCED TECHNIQUES (Intermediate-Advanced)
-    // 5.1 Practice and drills
     "practice-drills.pdf",
-    
-    // 5.2 Advanced techniques
     "advanced-rhetoric-how-to.pdf",
     "argument-generation-bonus-lecture-2025.pdf",
-    
-    // PHASE 6: SPECIALIZED SKILLS (Advanced)
-    // 6.1 Extemporaneous speaking
     "extemporaneous-speaking-textbook.pdf"
   ]
 
@@ -262,9 +258,8 @@ const generateLessonsFromFiles = (): Lesson[] => {
   return lessonFiles.map((fileName, index) => {
     // Extract lesson info from filename
     const nameWithoutExt = fileName.replace('.pdf', '')
-    
-    // Generate title from filename - handle various naming patterns
-    let title = nameWithoutExt
+    // Use user-friendly title if available
+    let title = lessonTitles[fileName] || nameWithoutExt
     
     // Remove common prefixes and suffixes
     title = title.replace(/^Copy of /, '') // Remove "Copy of" prefix
