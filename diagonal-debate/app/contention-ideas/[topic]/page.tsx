@@ -2,44 +2,16 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronLeft, Tag, Zap, FileText, Target, Lightbulb, ArrowRight, Sparkles } from "lucide-react"
+import { ChevronLeft, Tag, FileText, Target } from "lucide-react"
 import { contentionIdeas, type ContentionIdea } from "@/lib/contentionIdeas"
-import { toast } from "sonner"
 import { ScrollAnimation } from "@/components/scroll-animation"
-import { AnimatedIcon } from "@/components/animated-icon"
 
-const TAGS: string[] = [
-  "legal/constitutional",
-  "economic",
-  "psychological",
-  "scientific/technical",
-  "international relations",
-  "political strategy",
-  "moral/ethical",
-  "environmental",
-  "public health",
-  "security",
-  "innovation",
-  "implementation/agency inefficiency",
-]
 
-const IMPACT_FOCUS = [
-  "Economic",
-  "Lives Saved",
-  "Geopolitical",
-  "Societal Change",
-  "Technological Advancement",
-  "Environmental",
-  "Equity/Justice",
-  "Other",
-]
 
 function slugify(str: string) {
   return str
@@ -55,48 +27,6 @@ export default function ContentionTopicPage() {
   const topicObj: ContentionIdea | undefined = contentionIdeas.find(
     (idea: ContentionIdea) => slugify(idea.title) === topic,
   )
-
-  const [side, setSide] = useState<string>("pro")
-  const [summary, setSummary] = useState<string>("")
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [aiContentions, setAiContentions] = useState<string[] | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [impactFocus, setImpactFocus] = useState<string>("")
-  const [ellipsis, setEllipsis] = useState<string>("")
-  const ellipsisInterval = useRef<NodeJS.Timeout | null>(null)
-  const [progress, setProgress] = useState(0)
-
-  useEffect(() => {
-    if (loading) {
-      setEllipsis("")
-      ellipsisInterval.current = setInterval(() => {
-        setEllipsis((prev) => {
-          if (prev.length === 3) return ""
-          return prev + "."
-        })
-      }, 400)
-    } else {
-      setEllipsis("")
-      if (ellipsisInterval.current) clearInterval(ellipsisInterval.current)
-    }
-    return () => {
-      if (ellipsisInterval.current) clearInterval(ellipsisInterval.current)
-    }
-  }, [loading])
-
-  useEffect(() => {
-    if (loading) {
-      setProgress(0)
-      const interval = setInterval(() => {
-        setProgress((prev) => (prev < 95 ? prev + Math.random() * 10 : prev))
-      }, 200)
-      return () => clearInterval(interval)
-    } else {
-      setProgress(100)
-      const timeout = setTimeout(() => setProgress(0), 400)
-      return () => clearTimeout(timeout)
-    }
-  }, [loading])
 
   if (!topicObj) {
     return (
@@ -126,36 +56,7 @@ export default function ContentionTopicPage() {
     )
   }
 
-  const handleAIGenerate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setAiContentions(null)
-    try {
-      const res = await fetch("/api/contention-ideas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic: topicObj.title,
-          side,
-        }),
-      })
-      if (!res.ok) {
-        if (res.status === 429) {
-          const data = await res.json()
-          toast.error(data.message || "Rate limit exceeded. Please wait a minute and try again.")
-        } else {
-          throw new Error("Failed to generate contentions")
-        }
-        return
-      }
-      const data = await res.json()
-      setAiContentions(data)
-    } catch (err) {
-      toast.error("Failed to generate AI contentions. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white relative overflow-hidden">
