@@ -1,33 +1,25 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-
-# next.js
+.env*
+.env*.localnode_modules/
+.pnpm-debug.log*
+.svelte-kit/
+.vercel
+*.tsbuildinfo
 /.next/
-/out/
-
-# production
 /build
-
+/node_modules
+/out/
 # debug
+# dependencies
+# env files
+# local env files
+# next.js
+# production
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# sveltekit
+# typescript
+# vercel
+next-env.d.ts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
-
-# env files
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# sveltekit
-.svelte-kit/
-
-# local env files
-.env*.local
