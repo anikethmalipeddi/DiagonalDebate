@@ -41,46 +41,46 @@ const generateLessonsFromFiles = (): Lesson[] => {
   const lessonFiles: string[] = [
     // PHASE 1: FOUNDATION (Beginner - Start Here)
     // 1.1 Understanding the basics and overview
-    "General Overview + Schedule 'til WACFL 1.pdf",
+    "General-Overview-Schedule-WACFL-1.pdf",
     "Congressional Debate Basics.pdf",
     
     // 1.2 Core speaking fundamentals
-    "Presentation & Delivery - How to_.pdf",
-    "Intros + Rhetoric - How to_.pdf",
+    "Presentation-Delivery-How-to.pdf",
+    "Intros-Rhetoric-How-to.pdf",
     
     // PHASE 2: STRUCTURE & ARGUMENTATION (Beginner-Intermediate)
     // 2.1 Speech structure and strategy
-    "Speech Structures + Round Strategy - OVERVIEW.pdf",
-    "Argument Construction .pdf",
+    "Speech-Structures-Round-Strategy-Overview.pdf",
+    "Argument-Construction.pdf",
     
     // 2.2 Logical reasoning and contention building
-    "Logical Reasoning - How to_.pdf",
+    "Logical-Reasoning-How-to.pdf",
     "Contention Structure Practice.pdf",
     
     // PHASE 3: REFUTATION & ANALYSIS (Intermediate)
     // 3.1 Refutation fundamentals
-    "Introduction to Refutation & Weighing.pdf",
+    "Introduction-to-Refutation-Weighing.pdf",
     "Refutations - 2025.pdf",
     
     // 3.2 Cross-examination and impacting
-    "Cross Examination.pdf",
+    "Cross-Examination.pdf",
     "Impacting - How to_.pdf",
     
     // PHASE 4: PROCEDURE & RESEARCH (Intermediate)
     // 4.1 Parliamentary procedure
     "Parliamentary Procedure.pdf",
-    "Presiding Guide - RR.pdf",
+    "Presiding-Guide-RR.pdf",
     
     // 4.2 Research and legislation
-    "Legislation, Civics, & Research - How to_.pdf",
+    "Legislation-Civics-Research-How-to.pdf",
     
     // PHASE 5: PRACTICE & ADVANCED TECHNIQUES (Intermediate-Advanced)
     // 5.1 Practice and drills
     "Practice Drills.pdf",
     
     // 5.2 Advanced techniques
-    "Advanced Rhetoric - How to_.pdf",
-    "Argument Generation Bonus Lecture 2025.pdf",
+    "Advanced-Rhetoric-How-to.pdf",
+    "Argument-Generation-Bonus-Lecture-2025.pdf",
     
     // PHASE 6: SPECIALIZED SKILLS (Advanced)
     // 6.1 Extemporaneous speaking
