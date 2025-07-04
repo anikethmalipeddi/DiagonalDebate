@@ -265,6 +265,13 @@ function EventCard({ event, currentUser }: { event: Event; currentUser: User | n
 
   const canSignUp = event.category === "Tournament" || event.category === "Meeting"
 
+  const isAdmin = currentUser && [
+    "aniketh.malipeddi@gmail.com",
+    "anikethmalipeddi@gmail.com"
+  ].includes(currentUser.email)
+
+  const isInviteOnly = isChampionship || isNational;
+
   return (
     <Card
       className={`flex flex-col h-full border-2 ${color} ${
@@ -320,7 +327,12 @@ function EventCard({ event, currentUser }: { event: Event; currentUser: User | n
                 <Users className="w-4 h-4 text-gray-600" />
                 <h4 className="font-semibold text-gray-900">Attendees ({attendees.length})</h4>
               </div>
-              {currentUser ? (
+              {isInviteOnly ? (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 text-white font-semibold text-base shadow-sm border-2 border-red-700">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Invite Only – You must qualify to participate.
+                </div>
+              ) : currentUser ? (
                 isSignedUp ? (
                   <Button variant="success" disabled>
                     <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -396,6 +408,8 @@ export default function EventBoardPage() {
   const [deadlineDates, setDeadlineDates] = useState<Date[]>([])
   const [holidayDates, setHolidayDates] = useState<Date[]>([])
   const [pastDates, setPastDates] = useState<Date[]>([])
+
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -583,6 +597,8 @@ export default function EventBoardPage() {
                       mode="single"
                       selected={date}
                       onSelect={setDate}
+                      month={calendarMonth}
+                      onMonthChange={setCalendarMonth}
                       className="p-0"
                       modifiers={{
                         wacfl: wacflDates,
@@ -593,15 +609,24 @@ export default function EventBoardPage() {
                         deadline: deadlineDates,
                         clinic: clinicDates,
                         past: pastDates,
+                        event: [
+                          ...wacflDates,
+                          ...championshipDates,
+                          ...nationalDates,
+                          ...meetingDates,
+                          ...holidayDates,
+                          ...deadlineDates,
+                          ...clinicDates,
+                        ],
                       }}
                       modifiersClassNames={{
-                        wacfl: "bg-red-600 text-white hover:bg-red-700",
-                        championship: "bg-yellow-500 text-black hover:bg-yellow-600",
-                        national: "bg-red-800 text-white hover:bg-red-900",
-                        meeting: "bg-gray-400 text-white hover:bg-gray-500",
-                        holiday: "bg-gray-300 text-black hover:bg-gray-400",
-                        deadline: "bg-amber-500 text-white hover:bg-amber-600",
-                        clinic: "bg-red-400 text-white hover:bg-red-500",
+                        wacfl: "border-2 border-red-500",
+                        championship: "border-2 border-yellow-500",
+                        national: "border-2 border-red-800",
+                        meeting: "border-2 border-gray-400",
+                        holiday: "border-2 border-gray-300",
+                        deadline: "border-2 border-amber-500",
+                        clinic: "border-2 border-red-400",
                         past: "line-through opacity-50",
                       }}
                     />
@@ -698,7 +723,11 @@ export default function EventBoardPage() {
                             ) : (
                               <Button
                                 variant="outline"
-                                onClick={() => setDate(new Date())}
+                                onClick={() => {
+                                  const today = new Date();
+                                  setDate(today);
+                                  setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+                                }}
                                 className="text-red-600 border-red-200 hover:bg-red-50"
                               >
                                 Show Today's Events
@@ -774,8 +803,8 @@ export default function EventBoardPage() {
           <ScrollAnimation direction="up">
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
-                <div className="bg-amber-100 p-3 rounded-xl inline-flex items-center justify-center mb-4">
-                  <Bell className="w-8 h-8 text-amber-600" />
+                <div className="bg-red-100 p-3 rounded-xl inline-flex items-center justify-center mb-4">
+                  <Bell className="w-8 h-8 text-red-600" />
                 </div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">Important Notices</h2>
                 <p className="text-lg text-gray-600">Please review these important updates and policies</p>
@@ -783,11 +812,11 @@ export default function EventBoardPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Weather Policy */}
-                <Card className="border-amber-200 bg-amber-50/50">
+                <Card className="border-red-200 bg-red-50/50 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 group">
                   <CardHeader>
                     <div className="flex items-center space-x-3">
-                      <div className="bg-amber-100 p-2 rounded-lg">
-                        <Info className="w-5 h-5 text-amber-600" />
+                      <div className="bg-red-100 p-2 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                        <Info className="w-5 h-5 text-red-600" />
                       </div>
                       <div>
                         <CardTitle className="text-lg text-gray-900">Weather Policy</CardTitle>
@@ -804,11 +833,11 @@ export default function EventBoardPage() {
                 </Card>
 
                 {/* MetroFinals Format */}
-                <Card className="border-blue-200 bg-blue-50/50">
+                <Card className="border-yellow-200 bg-yellow-50/50 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 group">
                   <CardHeader>
                     <div className="flex items-center space-x-3">
-                      <div className="bg-blue-100 p-2 rounded-lg">
-                        <Trophy className="w-5 h-5 text-blue-600" />
+                      <div className="bg-yellow-100 p-2 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                        <Trophy className="w-5 h-5 text-yellow-600" />
                       </div>
                       <div>
                         <CardTitle className="text-lg text-gray-900">MetroFinals Format</CardTitle>
