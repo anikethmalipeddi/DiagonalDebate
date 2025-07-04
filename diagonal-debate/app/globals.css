@@ -113,3 +113,14 @@ body {
   src: url('/fonts/timesnewromanitalic.ttf') format('truetype');
   font-display: swap;
 }
+
+.event-dot::after {
+  content: "";
+  display: block;
+  margin: 0 auto;
+  margin-top: 2px;
+  width: 0.4em;
+  height: 0.4em;
+  border-radius: 50%;
+  background: currentColor;
+}

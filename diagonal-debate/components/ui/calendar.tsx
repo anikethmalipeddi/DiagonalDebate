@@ -12,7 +12,7 @@ export type CalendarProps = React.ComponentProps<typeof DayPicker>
 function Calendar({
   className,
   classNames,
-  showOutsideDays = true,
+  showOutsideDays = false,
   ...props
 }: CalendarProps) {
   return (
@@ -36,22 +36,42 @@ function Calendar({
         head_cell:
           "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        cell: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+          "h-9 w-9 p-0 font-normal text-gray-900 bg-white hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900"
         ),
-        day_range_end: "day-range-end",
         day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "border-2 border-red-500 bg-white !text-gray-900 font-bold z-10",
+          "bg-red-100 text-red-700 border-2 border-primary-600 hover:bg-red-200 focus:bg-red-200 focus:text-red-900",
+        day_today:
+          "border-2 border-red-200 bg-white text-gray-900 font-bold z-10",
         day_outside:
-          "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
+          "hidden",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
+      }}
+      modifiers={{
+        ...props.modifiers,
+        selected_today: (date) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (
+            props.selected instanceof Date &&
+            date.getFullYear() === today.getFullYear() &&
+            date.getMonth() === today.getMonth() &&
+            date.getDate() === today.getDate()
+          ) {
+            return true;
+          }
+          return false;
+        },
+      }}
+      modifiersClassNames={{
+        ...props.modifiersClassNames,
+        selected_today: "bg-red-100 text-red-700 border-2 border-red-200 font-bold z-20",
       }}
       components={{
         IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,

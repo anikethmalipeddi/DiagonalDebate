@@ -15,6 +15,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event ID is required' }, { status: 400 })
     }
 
+    // Fetch event
+    const event = await prisma.event.findUnique({ where: { id: eventId } })
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+    if (event.tournamentType === 'Championship') {
+      const adminEmails = [
+        'aniketh.malipeddi@gmail.com',
+        'anikethmalipeddi@gmail.com'
+      ]
+      if (!adminEmails.includes(user.email)) {
+        return NextResponse.json({ error: 'Invite only: Only admins can add users to this event.' }, { status: 403 })
+      }
+    }
+
     // Check if already signed up
     const existingSignup = await prisma.eventSignup.findFirst({
       where: { eventId, userId: user.id }

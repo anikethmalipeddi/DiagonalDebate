@@ -1,75 +1,158 @@
+"use client"
+
 import { events } from "@/lib/events"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { getCurrentUser } from "@/lib/auth"
-import { redirect } from "next/navigation"
-import { Users, Calendar, UserCheck, ShieldAlert, BookOpen, Star } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Users, Calendar, UserCheck, ShieldAlert, BookOpen, Star, ChevronDown, ChevronRight } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { prisma } from '@/lib/prisma'
+import { useState, useEffect } from "react"
+import { useToast } from "@/hooks/use-toast"
 
 const ADMIN_EMAILS = [
   "aniketh.malipeddi@gmail.com",
   "anikethmalipeddi@gmail.com"
 ]
 
-export default async function AdminPage() {
-  const currentUser = await getCurrentUser()
+const lessonFiles: string[] = [
+  "general-overview-schedule-wacfl-1.pdf",
+  "congressional-debate-basics.pdf",
+  "presentation-delivery-how-to.pdf",
+  "intros-rhetoric-how-to.pdf",
+  "speech-structures-round-strategy-overview.pdf",
+  "argument-construction.pdf",
+  "logical-reasoning-how-to.pdf",
+  "contention-structure-practice.pdf",
+  "introduction-to-refutation-weighing.pdf",
+  "refutations-2025.pdf",
+  "cross-examination.pdf",
+  "impacting-how-to.pdf",
+  "parliamentary-procedure.pdf",
+  "presiding-guide-rr.pdf",
+  "legislation-civics-research-how-to.pdf",
+  "practice-drills.pdf",
+  "advanced-rhetoric-how-to.pdf",
+  "argument-generation-bonus-lecture-2025.pdf",
+  "extemporaneous-speaking-textbook.pdf"
+];
 
-  if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
-    redirect("/")
+export default function AdminPage() {
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [usersWithLessons, setUsersWithLessons] = useState<any[]>([])
+  const [eventsWithSignups, setEventsWithSignups] = useState<any[]>([])
+  const [selectedUsers, setSelectedUsers] = useState<{ [key: string]: string }>({})
+  const [loading, setLoading] = useState<{ [key: string]: boolean }>({})
+  const { toast } = useToast()
+  const [expandedUser, setExpandedUser] = useState<string | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const allLessons = lessonFiles;
+  const [selectedLesson, setSelectedLesson] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Fetch current user
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setCurrentUser(data.user)
+        }
+      })
+
+    // Fetch users
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => {
+        if (data.users) {
+          setUsersWithLessons(data.users)
+        }
+      })
+
+    // Fetch events with signups
+    fetch('/api/events')
+      .then(res => res.json())
+      .then(data => {
+        if (data.events) {
+          setEventsWithSignups(data.events)
+        }
+      })
+  }, [])
+
+  const handleAddUser = async (eventId: string) => {
+    const userId = selectedUsers[eventId]
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "Please select a user first",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setLoading(prev => ({ ...prev, [eventId]: true }))
+
+    try {
+      const response = await fetch(`/api/events/${eventId}/add-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `User added to event successfully`,
+        })
+        
+        // Refresh events data
+        const eventsResponse = await fetch('/api/events')
+        const eventsData = await eventsResponse.json()
+        if (eventsData.events) {
+          setEventsWithSignups(eventsData.events)
+        }
+        
+        // Clear selection
+        setSelectedUsers(prev => ({ ...prev, [eventId]: '' }))
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to add user to event",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add user to event",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(prev => ({ ...prev, [eventId]: false }))
+    }
   }
 
-  // Fetch users with lesson data
-  const usersWithLessons = await prisma.user.findMany({
-    include: {
-      lessonRatings: true,
-      lessonEnrollments: true,
-    },
-  })
-  
-  // Fetch lesson enrollments and ratings
-  const lessonEnrollments = await prisma.lessonEnrollment.findMany({
-    include: { user: true },
-    orderBy: { createdAt: 'desc' },
-  })
-  const lessonRatings = await prisma.lessonRating.findMany({
-    include: { user: true },
-    orderBy: { createdAt: 'desc' },
-  })
-
-  // Fetch event signups
-  const eventSignups = await prisma.eventSignup.findMany({
-    include: { user: true },
-    orderBy: { createdAt: 'desc' },
-  })
-
-  // Fetch real events from the database
-  const events = await prisma.event.findMany({
-    orderBy: { date: 'asc' },
-  });
+  if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+        <Alert className="max-w-md">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>
+            You need admin privileges to access this page.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
   const totalUsers = usersWithLessons.length
-  const totalLessonEnrollments = lessonEnrollments.length
-  const totalLessonRatings = lessonRatings.length
-
-  const totalEvents = events.length
-
-  // Await all event signups promises
-  const eventsWithSignups = await Promise.all(events.map(async (event: ReturnType<typeof prisma.event.findMany>[number]) => {
-    const signupsForEvent = await prisma.eventSignup.findMany({
-      where: { eventId: event.id },
-      include: { user: true },
-      orderBy: { createdAt: 'desc' }
-    });
-    const signedUpUsers = signupsForEvent.map((signup) => signup.user?.name || signup.user?.email || 'Unknown');
-    return {
-      ...event,
-      signupCount: signupsForEvent.length,
-      signedUpUsers
-    };
-  }));
+  const totalEvents = eventsWithSignups.length
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -98,38 +181,11 @@ export default async function AdminPage() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Signups</CardTitle>
-                  <UserCheck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{eventSignups.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Events</CardTitle>
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{totalEvents}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Lesson Enrollments</CardTitle>
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalLessonEnrollments}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Lesson Ratings</CardTitle>
-                  <Star className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalLessonRatings}</div>
                 </CardContent>
               </Card>
             </div>
@@ -146,13 +202,14 @@ export default async function AdminPage() {
                       <TableHead>Date</TableHead>
                       <TableHead className="text-center">Signups</TableHead>
                       <TableHead>Attendees</TableHead>
+                      <TableHead>Add User</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {eventsWithSignups.map((event: any) => (
                       <TableRow key={event.id}>
                         <TableCell className="font-medium">{event.title}</TableCell>
-                        <TableCell>{event.date}</TableCell>
+                        <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant={event.signupCount > 0 ? "default" : "outline"}>
                             {event.signupCount}
@@ -169,6 +226,33 @@ export default async function AdminPage() {
                             <span className="text-xs text-gray-500">No one signed up</span>
                           )}
                         </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Select 
+                              value={selectedUsers[event.id] || ''} 
+                              onValueChange={(value) => setSelectedUsers(prev => ({ ...prev, [event.id]: value }))}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue placeholder="Select user" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {usersWithLessons.map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.name || user.email}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleAddUser(event.id)}
+                              disabled={loading[event.id]}
+                            >
+                              {loading[event.id] ? 'Adding...' : 'Add'}
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -182,35 +266,41 @@ export default async function AdminPage() {
                 <CardTitle>Users & Their Activity</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Event Signups</TableHead>
-                      <TableHead>Lesson Enrollments</TableHead>
-                      <TableHead>Lesson Ratings</TableHead>
-                      <TableHead>Registered On</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {usersWithLessons.map((user: any) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
+                <div className="mb-6">
+                  <Select value={selectedUserId || ''} onValueChange={setSelectedUserId}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Select a user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {usersWithLessons.map((user: any) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedUserId && (() => {
+                  const user = usersWithLessons.find((u: any) => u.id === selectedUserId)
+                  if (!user) return null
+                  return (
+                    <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                      <div className="mb-4">
+                        <span className="font-semibold text-lg">{user.name}</span>
+                        <span className="ml-4 text-gray-600">{user.email}</span>
+                        <span className="ml-4 text-gray-500">Registered: {new Date(user.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                          <div className="font-semibold mb-2">Event Signups</div>
                           {user.eventSignups && user.eventSignups.length > 0 ? (
                             <div className="flex flex-col gap-1">
                               {user.eventSignups.map((signup: any) => {
-                                const event = events.find(e => e.id === signup.eventId);
+                                const event = eventsWithSignups.find(e => e.id === signup.eventId);
                                 return (
-                                  <div key={signup.id} className="text-xs">
-                                    <Badge variant="secondary" className="text-xs">
-                                      {event ? event.title : signup.eventId}
-                                    </Badge>
-                                    <div className="text-gray-500 mt-1">
-                                      {signup.createdAt.toLocaleDateString()}
-                                    </div>
+                                  <div key={signup.id} className="text-xs bg-white rounded px-2 py-1 border border-gray-200 mb-1 flex flex-col">
+                                    <span className="font-medium text-gray-800">{event ? event.title : signup.eventId}</span>
+                                    <span className="text-gray-500">{new Date(signup.createdAt).toLocaleDateString()}</span>
                                   </div>
                                 );
                               })}
@@ -218,133 +308,117 @@ export default async function AdminPage() {
                           ) : (
                             <span className="text-gray-500 text-sm">No event signups</span>
                           )}
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                        <div>
+                          <div className="font-semibold mb-2">Lesson Enrollments</div>
                           {user.lessonEnrollments && user.lessonEnrollments.length > 0 ? (
                             <div className="flex flex-col gap-1">
                               {user.lessonEnrollments.map((enrollment: any) => (
-                                <div key={enrollment.id} className="text-xs">
-                                  <Badge variant="outline" className="text-xs">
-                                    {enrollment.lessonFileName.replace('.pdf', '')}
-                                  </Badge>
-                                  <div className="text-gray-500 mt-1">
-                                    {enrollment.createdAt.toLocaleDateString()}
-                                  </div>
+                                <div key={enrollment.id} className="text-xs bg-white rounded px-2 py-1 border border-gray-200 mb-1 flex flex-col">
+                                  <span className="font-medium text-gray-800">{enrollment.lessonFileName.replace('.pdf', '')}</span>
+                                  <span className="text-gray-500">{new Date(enrollment.createdAt).toLocaleDateString()}</span>
                                 </div>
                               ))}
                             </div>
                           ) : (
                             <span className="text-gray-500 text-sm">No lesson enrollments</span>
                           )}
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                        <div>
+                          <div className="font-semibold mb-2">Lesson Ratings</div>
                           {user.lessonRatings && user.lessonRatings.length > 0 ? (
                             <div className="flex flex-col gap-1">
                               {user.lessonRatings.map((rating: any) => (
-                                <div key={rating.id} className="text-xs">
+                                <div key={rating.id} className="text-xs bg-white rounded px-2 py-1 border border-gray-200 mb-1 flex flex-col">
                                   <div className="flex items-center gap-1">
-                                    <Badge variant="outline" className="text-xs">
-                                      {rating.lessonFileName.replace('.pdf', '')}
-                                    </Badge>
+                                    <span className="font-medium text-gray-800">{rating.lessonFileName.replace('.pdf', '')}</span>
                                     <span className="text-yellow-600">★ {rating.rating}</span>
                                   </div>
-                                  <div className="text-gray-500 mt-1">
-                                    {rating.createdAt.toLocaleDateString()}
-                                  </div>
+                                  <span className="text-gray-500">{new Date(rating.createdAt).toLocaleDateString()}</span>
                                 </div>
                               ))}
                             </div>
                           ) : (
                             <span className="text-gray-500 text-sm">No ratings</span>
                           )}
-                        </TableCell>
-                        <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="lessons">
-            <div className="grid gap-6">
-              {/* Lesson Enrollments */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Lesson Enrollments</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Lesson</TableHead>
-                        <TableHead>Enrolled On</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lessonEnrollments.slice(0, 20).map((enrollment: any) => (
-                        <TableRow key={enrollment.id}>
-                          <TableCell className="font-medium">
-                            {enrollment.user.name || enrollment.user.email}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {enrollment.lessonFileName.replace('.pdf', '')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {enrollment.createdAt.toLocaleDateString()} at {enrollment.createdAt.toLocaleTimeString()}
-                          </TableCell>
-                        </TableRow>
+            <Card>
+              <CardHeader>
+                <CardTitle>Lesson Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-6">
+                  <Select value={selectedLesson || ''} onValueChange={setSelectedLesson}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Select a lesson" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allLessons.map((lesson) => (
+                        <SelectItem key={lesson} value={lesson}>
+                          {lesson.replace('.pdf', '')}
+                        </SelectItem>
                       ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-
-              {/* Lesson Ratings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Lesson Ratings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Lesson</TableHead>
-                        <TableHead>Rating</TableHead>
-                        <TableHead>Rated On</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lessonRatings.slice(0, 20).map((rating: any) => (
-                        <TableRow key={rating.id}>
-                          <TableCell className="font-medium">
-                            {rating.user.name || rating.user.email}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {rating.lessonFileName.replace('.pdf', '')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-yellow-600">★</span>
-                              <span className="font-medium">{rating.rating}/5</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {rating.createdAt.toLocaleDateString()} at {rating.createdAt.toLocaleTimeString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedLesson && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <div className="font-semibold mb-2">Enrollments</div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Enrolled On</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {usersWithLessons.flatMap(user =>
+                            user.lessonEnrollments?.filter((e: any) => e.lessonFileName === selectedLesson).map((e: any) => ({ ...e, user })) || []
+                          ).map((enrollment: any) => (
+                            <TableRow key={enrollment.id}>
+                              <TableCell>{enrollment.user.name || enrollment.user.email}</TableCell>
+                              <TableCell>{new Date(enrollment.createdAt).toLocaleDateString()} {new Date(enrollment.createdAt).toLocaleTimeString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-2">Ratings</div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Rating</TableHead>
+                            <TableHead>Rated On</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {usersWithLessons.flatMap(user =>
+                            user.lessonRatings?.filter((r: any) => r.lessonFileName === selectedLesson).map((r: any) => ({ ...r, user })) || []
+                          ).map((rating: any) => (
+                            <TableRow key={rating.id}>
+                              <TableCell>{rating.user.name || rating.user.email}</TableCell>
+                              <TableCell><span className="text-yellow-600">★</span> {rating.rating}/5</TableCell>
+                              <TableCell>{new Date(rating.createdAt).toLocaleDateString()} {new Date(rating.createdAt).toLocaleTimeString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
