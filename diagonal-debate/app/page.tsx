@@ -127,7 +127,7 @@ const aboutSections = [
 
 const stats = [
   { number: "500+", label: "Bills Reviewed", delay: 0 },
-  { number: "1000s", label: "Hours of Review Cycles", delay: 200 },
+  { number: "1000s", label: "Hours in Review Cycles Saved", delay: 200 },
   { number: "150+", label: "Hours of Debate Lessons", delay: 400 },
   { number: "100%", label: "Improvement Guarantee", delay: 600 },
 ]
