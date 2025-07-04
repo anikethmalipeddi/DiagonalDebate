@@ -115,4 +115,4 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 ---
 
 **Maintainer:** [Steaker0187](https://github.com/Steaker0187)  
-For questions or support, please open an issue or contact the maintainer. 
+For questions or support, please open an issue or contact the maintainer.
