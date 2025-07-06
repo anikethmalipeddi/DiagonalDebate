@@ -395,7 +395,7 @@ export default function LegislationCheckerPage() {
     console.log('Set isSubmitting to true')
     try {
       // 1. Generate the PDF via backend
-      const pdfRes = await fetch('/api/legislation-checker/test-pdf', {
+      const pdfRes = await fetch('/api/legislation-checker/generate-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
