@@ -64,10 +64,11 @@ function parseContent(rawContent: string) {
     // Subsections or continuation text
     if (currentSection) {
       // Check if this is a subsection (A., B., etc.)
-      if (line.match(/^[A-Z]\.\s/)) {
+      if (line.match(/^[A-Za-z]\.\s/)) {
+        const capitalizedLine = line.replace(/^[a-z]\./, match => match.toUpperCase())
         currentSection.content.push({
           type: 'subsection',
-          text: line
+          text: capitalizedLine
         })
       } else {
         // This is continuation text for the main section or last subsection

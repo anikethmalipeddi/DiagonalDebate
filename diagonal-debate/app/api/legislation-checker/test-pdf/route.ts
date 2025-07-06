@@ -4,15 +4,19 @@ import { generateLegislationPDF } from '../submit/route'
 export const dynamic = 'force-dynamic'
 
 export async function GET(_req: NextRequest) {
-  // Updated test data for the new amendment
+  // Test data for the amendment to lower the federal voting age
   const type = 'amendment'
   const category = 'domestic'
-  const number = '3001'
-  const title = 'A Resolution to Amend the Constitution to Protect Electoral Integrity from Deepfake Technology'
-  const content = `RESOLVED, By two-thirds of the Congress here assembled, that the following article is proposed as an amendment to the Constitution of the United States, which shall be valid to all intents and purposes as part of the Constitution when ratified by the legislatures of three-fourths of the several states within seven years from the date of its submission by the Congress:\nARTICLE --\nSECTION 1: The intentional creation or distribution of synthetically generated media—including audio, images, or video—with the intent to deceive voters or manipulate political outcomes shall be prohibited in political campaign materials. All political media involving artificial generation must include a disclosure label identifying it as such.\nSECTION 2: The Congress shall have power to enforce this article by appropriate legislation.`
+  const number = 'D411'
+  const title = 'A Resolution to Amend the Constitution to Lower the Federal Voting Age'
+  const content = `RESOLVED, By two-thirds of the Congress here assembled, that the following article is proposed as an amendment to the Constitution of the United States, which shall be valid to all intents and purposes as part of the Constitution when ratified by the legislatures of three-fourths of the several states within seven years from the date of its submission by the Congress:
+
+ARTICLE --
+SECTION 1. The right of citizens of the United States, who are sixteen years of age or older, to vote in federal elections shall not be denied or abridged by the United States or by any State on account of age.
+SECTION 2. The Congress shall have power to enforce this article by appropriate legislation.`
 
   // Generate the PDF buffer
-  const doc = await generateLegislationPDF(type, category, number, title, content, 'Test User')
+  const doc = await generateLegislationPDF(type, category, number, title, content, 'Diagonal Debater')
   // Convert PDFDocument to Buffer
   const pdfBuffer: Buffer = await new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
@@ -21,7 +25,7 @@ export async function GET(_req: NextRequest) {
     doc.on('error', reject)
   })
 
-  // Use the bill number as the filename (e.g., 3001.pdf)
+  // Use the bill number as the filename (e.g., D411.pdf)
   const filename = `${number}.pdf`
 
   return new NextResponse(pdfBuffer, {

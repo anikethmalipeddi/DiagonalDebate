@@ -59,8 +59,8 @@ export default function AdminPage() {
         if (data.user) {
           setCurrentUser(data.user)
         }
-      })
-
+  })
+  
     // Fetch users
     fetch('/api/users')
       .then(res => res.json())
@@ -108,8 +108,8 @@ export default function AdminPage() {
         toast({
           title: "Success",
           description: `User added to event successfully`,
-        })
-        
+  })
+
         // Refresh events data
         const eventsResponse = await fetch('/api/events')
         const eventsData = await eventsResponse.json()
@@ -272,7 +272,7 @@ export default function AdminPage() {
                       <SelectValue placeholder="Select a user" />
                     </SelectTrigger>
                     <SelectContent>
-                      {usersWithLessons.map((user: any) => (
+                    {usersWithLessons.map((user: any) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.name} ({user.email})
                         </SelectItem>
@@ -350,11 +350,11 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
           <TabsContent value="lessons">
-            <Card>
-              <CardHeader>
+              <Card>
+                <CardHeader>
                 <CardTitle>Lesson Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
+                </CardHeader>
+                <CardContent>
                 <div className="mb-6">
                   <Select value={selectedLesson || ''} onValueChange={setSelectedLesson}>
                     <SelectTrigger className="w-64">
@@ -373,52 +373,52 @@ export default function AdminPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <div className="font-semibold mb-2">Enrollments</div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Enrolled On</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Enrolled On</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                           {usersWithLessons.flatMap(user =>
                             user.lessonEnrollments?.filter((e: any) => e.lessonFileName === selectedLesson).map((e: any) => ({ ...e, user })) || []
                           ).map((enrollment: any) => (
-                            <TableRow key={enrollment.id}>
+                        <TableRow key={enrollment.id}>
                               <TableCell>{enrollment.user.name || enrollment.user.email}</TableCell>
                               <TableCell>{new Date(enrollment.createdAt).toLocaleDateString()} {new Date(enrollment.createdAt).toLocaleTimeString()}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                     </div>
                     <div>
                       <div className="font-semibold mb-2">Ratings</div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Rating</TableHead>
-                            <TableHead>Rated On</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead>Rated On</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                           {usersWithLessons.flatMap(user =>
                             user.lessonRatings?.filter((r: any) => r.lessonFileName === selectedLesson).map((r: any) => ({ ...r, user })) || []
                           ).map((rating: any) => (
-                            <TableRow key={rating.id}>
+                        <TableRow key={rating.id}>
                               <TableCell>{rating.user.name || rating.user.email}</TableCell>
                               <TableCell><span className="text-yellow-600">★</span> {rating.rating}/5</TableCell>
                               <TableCell>{new Date(rating.createdAt).toLocaleDateString()} {new Date(rating.createdAt).toLocaleTimeString()}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
           </TabsContent>
         </Tabs>
       </div>
