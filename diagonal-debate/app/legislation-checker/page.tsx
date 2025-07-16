@@ -172,49 +172,68 @@ export default function LegislationCheckerPage() {
     const name = userFirstName.toLowerCase()
     let warning = ""
 
+    // Debug: Log the full body text
+    console.log('[DEBUG] Legislation body text:', JSON.stringify(formData.text));
+
     // 1. Block title in body (new: only if title is at least 8 chars and not empty)
     if (body && title && title.length >= 8 && body.includes(title)) {
       warning = "Do not type or paste your legislation's title in the body text. Only include the body of your legislation here."
+      console.log('[DEBUG] Title found in body, warning set.');
     }
     // 2. Block user's name in body
     else if (body && name && name.length > 0 && body.includes(name)) {
       warning = "Do not include your name in the body of your legislation."
+      console.log('[DEBUG] User name found in body, warning set.');
     }
-    // 3. Block submission signature phrases
-    else if (["respectfully submitted", "representative", "rock ridge high school", name].some(phrase => phrase && body.includes(phrase))) {
-      warning = "Do not include any part of the submission signature (e.g., 'Respectfully Submitted', 'Representative', 'Rock Ridge High School', or your name) in the body of your legislation."
-    }
-    // 3.5. Block enactment clause in body for bills
-    else if (
-      formData.type === 'bill' &&
-      /be\s*it\s*enacted\s*by\s*the\s*congress\s*here\s*assembled\s*that\s*:?/i.test(body.replace(/\s+/g, ' '))
-    ) {
-      warning = "Do not include the enactment clause ('BE IT ENACTED BY THE CONGRESS HERE ASSEMBLED THAT:') in the body of your legislation. The system will add it automatically."
-    }
-    // 4. Block line numbers at the start of lines (not part of section headers)
-    else if (formData.text.split(/\n/).some(line => {
-      const trimmed = line.trim()
-      return /^\d{1,3}(\.|:|\s)/.test(trimmed) && !/^section\s+\d+\./i.test(trimmed)
-    })) {
-      warning = "Do not include line numbers at the start of lines in your legislation text."
-    }
-    // 5. Block 3+ consecutive lines that are just numbers (with optional whitespace)
+    // 3. Block only the full submission signature block (not the word 'representative')
     else {
-      const lines = formData.text.split(/\n/)
-      let consecutive = 0
-      for (let i = 0; i < lines.length; i++) {
-        if (/^\s*\d{1,3}\s*$/.test(lines[i])) {
-          consecutive++
-          if (consecutive >= 3) {
-            warning = "Do not include pasted line number blocks in your legislation text."
-            break
+      const sigBlockRegex = /Respectfully Submitted,\s*Representative[^\n\r]*\s*Rock Ridge High School/i;
+      const sigBlockMatch = formData.text.match(sigBlockRegex);
+      const sigBlockTest = sigBlockRegex.test(formData.text);
+      console.log('[DEBUG] Signature block regex test:', sigBlockTest);
+      if (sigBlockTest) {
+        console.log('[DEBUG] Signature block matched substring:', sigBlockMatch ? sigBlockMatch[0] : null);
+        warning = "Do not include any part of the submission signature block (e.g., 'Respectfully Submitted, Representative [Name] Rock Ridge High School') in the body of your legislation."
+        console.log('[DEBUG] Signature block warning set.');
+      }
+      // 3.5. Block enactment clause in body for bills
+      else if (
+        formData.type === 'bill' &&
+        /be\s*it\s*enacted\s*by\s*the\s*congress\s*here\s*assembled\s*that\s*:?/i.test(body.replace(/\s+/g, ' '))
+      ) {
+        warning = "Do not include the enactment clause ('BE IT ENACTED BY THE CONGRESS HERE ASSEMBLED THAT:') in the body of your legislation. The system will add it automatically."
+        console.log('[DEBUG] Enactment clause warning set.');
+      }
+      // 4. Block line numbers at the start of lines (not part of section headers)
+      else if (formData.text.split(/\n/).some(line => {
+        const trimmed = line.trim()
+        return /^\d{1,3}(\.|:|\s)/.test(trimmed) && !/^section\s+\d+\./i.test(trimmed)
+      })) {
+        warning = "Do not include line numbers at the start of lines in your legislation text."
+        console.log('[DEBUG] Line numbers warning set.');
+      }
+      // 5. Block 3+ consecutive lines that are just numbers (with optional whitespace)
+      else {
+        const lines = formData.text.split(/\n/)
+        let consecutive = 0
+        for (let i = 0; i < lines.length; i++) {
+          if (/^\s*\d{1,3}\s*$/.test(lines[i])) {
+            consecutive++
+            if (consecutive >= 3) {
+              warning = "Do not include pasted line number blocks in your legislation text."
+              console.log('[DEBUG] Pasted line number block warning set.');
+              break
+            }
+          } else {
+            consecutive = 0
           }
-        } else {
-          consecutive = 0
         }
       }
     }
     setBodyWarning(warning)
+    if (warning) {
+      console.log('[DEBUG] Final bodyWarning set:', warning);
+    }
   }, [formData.text, formData.title, userFirstName, formData.type])
 
   // Loading animation with stages
