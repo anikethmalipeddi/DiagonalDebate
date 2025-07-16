@@ -11,130 +11,359 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 // Helper to normalize whitespace and lowercase for case-insensitive checks
 const normalize = (str: string) => str.replace(/\s+/g, ' ').trim().toLowerCase();
 
-// A simple in-memory check for required clauses based on legislation type
-const checkTemplateErrors = (text: string, type: 'bill' | 'resolution' | 'amendment', category: string, number: string, title: string) => {
-  const errors: string[] = []
-  
-  // Bill template enforcement
-  if (type === "bill") {
-    const template = legislationTemplates.bill
-    if (template.titlePattern && !normalize(title).startsWith(normalize(template.titlePattern))) {
-      errors.push(`Title must start with: '${template.titlePattern}'. Your title: '${title.trim()}'`)
+// Strict template compliance checks for Bill, Resolution, Amendment
+function checkTemplateErrors(type: string, body: string, title?: string): string[] {
+  const errors: string[] = [];
+  const normBody = body.replace(/\s+/g, ' ').toUpperCase();
+
+  // New: Block title in body (case-insensitive, but must be at least 8 chars)
+  if (title && title.trim().length >= 8) {
+    const normTitle = title.replace(/\s+/g, ' ').trim().toLowerCase();
+    const normBodyLower = body.replace(/\s+/g, ' ').toLowerCase();
+    if (normBodyLower.includes(normTitle)) {
+      errors.push("Do not type or paste your legislation's title in the body text. Only include the body of your legislation here.");
     }
-    if (!/section 1\./i.test(text)) {
-      errors.push('A bill must include "SECTION 1." as the first section.')
+  }
+
+  if (type === 'bill') {
+    // Required sections in order
+    const requiredSections = [
+      'SECTION 1.',
+      'SECTION 2.',
+      'SECTION 3.',
+      'SECTION 4.',
+      'SECTION 5.',
+      'SECTION 6.'
+    ];
+    // Find all section headers and their order (case sensitive)
+    const sectionRegex = /SECTION \d+\./g;
+    const foundSections = [];
+    let match;
+    while ((match = sectionRegex.exec(body)) !== null) {
+      foundSections.push(match[0]); // do not uppercase
     }
-    for (const section of template.requiredSections) {
-      if (section.required && !normalize(text).includes(normalize(section.header))) {
-        errors.push(`Missing required section: '${section.header}'`)
+    // Check for missing or out-of-order sections (case sensitive)
+    for (let i = 0; i < requiredSections.length; i++) {
+      if (foundSections[i] !== requiredSections[i]) {
+        // Check if a lower/mixed case version exists
+        const regexLoose = new RegExp(requiredSections[i].replace('.', '\.'), 'i');
+        const looseMatch = body.match(regexLoose);
+        if (looseMatch) {
+          errors.push(`Section header '${looseMatch[0]}' is not in the correct format. Use '${requiredSections[i]}' (all caps, with a period).`);
+        } else {
+          errors.push(`Missing or out-of-order: ${requiredSections[i]}`);
+        }
       }
     }
-  }
-
-  // Resolution template enforcement
-  if (type === "resolution") {
-    const template = legislationTemplates.resolution
-    if (template.titlePattern && !normalize(title).startsWith(normalize(template.titlePattern))) {
-      errors.push(`Title must start with: '${template.titlePattern}'. Your title: '${title.trim()}'`)
+    // --- LOGGING FOR DEBUG ---
+    console.log('--- TEMPLATE CHECK DEBUG ---');
+    console.log('Raw body:', JSON.stringify(body));
+    // Check SECTION 5 content (case sensitive)
+    const section5Match = body.match(/SECTION 5\.[\s\S]*?(?=SECTION 6\.|$)/);
+    console.log('SECTION 5 match:', section5Match);
+    let section5Text = '';
+    if (section5Match) {
+      section5Text = section5Match[0];
+      console.log('SECTION 5 text:', section5Text);
+      const datePattern = /(FY \d{4}|[A-Z][a-z]+ \d{1,2}, \d{4})/i;
+      const immediatePattern = /IMMEDIATELY UPON ITS PASSAGE/i;
+      if (!datePattern.test(section5Text) && !immediatePattern.test(section5Text)) {
+        errors.push('SECTION 5 must include a date (e.g., "FY 2021" or "July 1, 2021") or the phrase "immediately upon its passage".');
+      }
+    } else {
+      errors.push('Missing SECTION 5 content.');
     }
-    const whereasCount = (text.match(/WHEREAS,/gi) || []).length
-    if (whereasCount < 1) {
-      errors.push('A resolution must include at least one "WHEREAS," clause.')
+    // Check SECTION 6 nullification (case sensitive)
+    const section6Match = body.match(/SECTION 6\.[\s\S]*/);
+    console.log('SECTION 6 match:', section6Match);
+    if (section6Match) {
+      const section6Text = section6Match[0];
+      console.log('SECTION 6 text:', section6Text);
+      if (!section6Text.includes('All laws in conflict with this legislation are hereby declared null and void.')) {
+        errors.push('SECTION 6 must include: "All laws in conflict with this legislation are hereby declared null and void."');
+      }
+    } else {
+      errors.push('Missing SECTION 6 content.');
     }
-    if (!/RESOLVED,/i.test(text)) {
-      errors.push('A resolution must include at least one "RESOLVED," clause.')
+    console.log('--- END TEMPLATE CHECK DEBUG ---');
+  } else if (type === 'resolution') {
+    // At least one WHEREAS, clause (case sensitive)
+    const whereasRegex = /WHEREAS,.*?;/g;
+    const allWhereas = [];
+    let match;
+    while ((match = whereasRegex.exec(body)) !== null) {
+      allWhereas.push(match[0]);
     }
-  }
-
-  // Amendment template enforcement
-  if (type === "amendment") {
-    const template = legislationTemplates.amendment
-    if (template.titlePattern && !normalize(title).startsWith(normalize(template.titlePattern))) {
-      errors.push(`Title must start with: '${template.titlePattern}'. Your title: '${title.trim()}'`)
-    }
-    if (!normalize(text).includes(normalize(template.resolvedClause))) {
-      errors.push(`Missing resolved clause: '${template.resolvedClause}'`)
-    }
-    if (!normalize(text).includes(normalize(template.articleHeader))) {
-      errors.push(`Missing article header: '${template.articleHeader}'`)
-    }
-    if (!/section 1:/i.test(text)) {
-      errors.push('An amendment must include "SECTION 1:" as the first section.')
-    }
-    for (const section of template.requiredSections) {
-      if (section.required && !normalize(text).includes(normalize(section.header))) {
-        errors.push(`Missing required section: '${section.header}'`)
+    if (allWhereas.length < 1) {
+      // Check for lowercase/mixed-case version
+      const looseWhereas = body.match(/whereas,.*?;/i);
+      if (looseWhereas) {
+        errors.push(`Clause '${looseWhereas[0]}' is not in the correct format. Use 'WHEREAS,' (all caps, with a comma).`);
+      } else {
+        errors.push('At least one WHEREAS, clause is required.');
       }
     }
-  }
-
-  // Number prefix check (as before)
-  if (category && number) {
-    const numberParts = number.trim().split(/[^a-zA-Z0-9.]+/)
-    const idPart = numberParts[numberParts.length - 1]
-    if (idPart) {
-      const numberPrefix = idPart.charAt(0).toLowerCase()
-      const categoryPrefix = category.charAt(0).toLowerCase()
-      if (numberPrefix !== categoryPrefix) {
-        errors.push(
-          `Legislation number prefix '${idPart.charAt(0).toUpperCase()}' does not match the category '${category.charAt(0).toUpperCase() + category.slice(1)}'. The prefix should be '${category.charAt(0).toUpperCase()}'.`
-        )
+    // Final WHEREAS must end with '; now, therefore, be it' (case sensitive)
+    const finalWhereasPattern = /WHEREAS,.*?; now, therefore, be it/;
+    if (!finalWhereasPattern.test(body)) {
+      // Check for lowercase/mixed-case version
+      const looseFinal = body.match(/whereas,.*?; now, therefore, be it/i);
+      if (looseFinal) {
+        errors.push(`Final WHEREAS clause '${looseFinal[0]}' is not in the correct format. Use all caps and exact punctuation: '; now, therefore, be it'.`);
+      } else {
+        errors.push('The final WHEREAS, clause must end with "; now, therefore, be it".');
       }
     }
+    // RESOLVED clause (case sensitive)
+    if (!/RESOLVED, That the Congress here assembled/.test(body)) {
+      const looseResolved = body.match(/resolved, that the congress here assembled/i);
+      if (looseResolved) {
+        errors.push(`Clause '${looseResolved[0]}' is not in the correct format. Use 'RESOLVED, That the Congress here assembled' (all caps for RESOLVED, exact case for rest).`);
+      } else {
+        errors.push('Missing required RESOLVED, That the Congress here assembled clause.');
+      }
+    }
+    // WHEREAS must come before RESOLVED (case sensitive)
+    const firstWhereas = body.search(/WHEREAS,/);
+    const firstResolved = body.search(/RESOLVED,/);
+    if (firstResolved !== -1 && (firstWhereas === -1 || firstWhereas > firstResolved)) {
+      errors.push('All WHEREAS, clauses must come before any RESOLVED, clause.');
+    }
+  } else if (type === 'amendment') {
+    // Strict RESOLVED clause (case sensitive)
+    const resolvedPattern = /RESOLVED, By two-thirds of the Congress here assembled, that the following article is proposed as an amendment to the Constitution of the United States, which shall be valid to all intents and purposes as part of the Constitution when ratified by the legislatures of three-fourths of the several states within seven years from the date of its submission by the Congress:/;
+    if (!resolvedPattern.test(body)) {
+      const looseResolved = body.match(/resolved, by two-thirds of the congress here assembled, that the following article is proposed as an amendment to the constitution of the united states, which shall be valid to all intents and purposes as part of the constitution when ratified by the legislatures of three-fourths of the several states within seven years from the date of its submission by the congress:/i);
+      if (looseResolved) {
+        errors.push(`RESOLVED clause is not in the correct format. Use exact case and punctuation as required.`);
+      } else {
+        errors.push('Missing or incorrect RESOLVED clause for amendment.');
+      }
+    }
+    // ARTICLE -- (case sensitive)
+    if (!/ARTICLE --/.test(body)) {
+      const looseArticle = body.match(/article --/i);
+      if (looseArticle) {
+        errors.push(`ARTICLE header '${looseArticle[0]}' is not in the correct format. Use 'ARTICLE --' (all caps, two hyphens).`);
+      } else {
+        errors.push('Missing ARTICLE -- header.');
+      }
+    }
+    // SECTION 1: and SECTION 2: in order (accept colon or period, but prefer colon)
+    const section1ColonIndex = body.search(/SECTION 1:/);
+    const section1PeriodIndex = body.search(/SECTION 1\./);
+    const section2ColonIndex = body.search(/SECTION 2:/);
+    const section2PeriodIndex = body.search(/SECTION 2\./);
+    let section1Index = -1;
+    let section2Index = -1;
+    if (section1ColonIndex !== -1) {
+      section1Index = section1ColonIndex;
+    } else if (section1PeriodIndex !== -1) {
+      section1Index = section1PeriodIndex;
+      errors.push("Section header 'SECTION 1.' is not in the correct format. Use 'SECTION 1:' (all caps, with a colon).")
+    } else {
+      const looseSec1 = body.match(/section 1[:.]/i);
+      if (looseSec1) {
+        errors.push(`Section header '${looseSec1[0]}' is not in the correct format. Use 'SECTION 1:' (all caps, with a colon).`);
+      } else {
+        errors.push('Missing SECTION 1:');
+      }
+    }
+    if (section2ColonIndex !== -1) {
+      section2Index = section2ColonIndex;
+    } else if (section2PeriodIndex !== -1) {
+      section2Index = section2PeriodIndex;
+      errors.push("Section header 'SECTION 2.' is not in the correct format. Use 'SECTION 2:' (all caps, with a colon).")
+    } else {
+      const looseSec2 = body.match(/section 2[:.]/i);
+      if (looseSec2) {
+        errors.push(`Section header '${looseSec2[0]}' is not in the correct format. Use 'SECTION 2:' (all caps, with a colon).`);
+      } else {
+        errors.push('Missing SECTION 2:');
+      }
+    }
+    if (section1Index !== -1 && section2Index !== -1 && section1Index > section2Index) {
+      errors.push('SECTION 1: must come before SECTION 2:');
+    }
+    // SECTION 2 enforcement phrase (case sensitive, works for either colon or period)
+    let section2Match = body.match(/SECTION 2:(.*)/);
+    if (!section2Match) {
+      section2Match = body.match(/SECTION 2\.(.*)/);
+    }
+    if (section2Match) {
+      const section2Text = section2Match[1];
+      if (!section2Text.includes('The Congress shall have power to enforce this article by appropriate legislation.')) {
+        const looseEnforce = section2Text.match(/the congress shall have power to enforce this article by appropriate legislation\.?/i);
+        if (looseEnforce) {
+          errors.push('Enforcement phrase in SECTION 2 is not in the correct format. Use exact case and punctuation.');
+        } else {
+          errors.push('SECTION 2 must include "The Congress shall have power to enforce this article by appropriate legislation."');
+        }
+      }
+    } else {
+      errors.push('Missing SECTION 2 content.');
+    }
   }
-
-  return errors
+  return errors;
 }
 
-async function checkGrammarSpelling(text: string) {
-  const res = await fetch("https://api.languagetool.org/v2/check", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      text,
-      language: "en-US",
-    }),
-  })
-  if (res.status === 429) return { errors: [], rateLimited: true };
-  if (!res.ok) return { errors: [], rateLimited: false };
+// Helper: Split body into sections for grammar/spellcheck
+function splitIntoSections(type: string, body: string): { section: string, text: string }[] {
+  if (type === 'bill' || type === 'amendment') {
+    // Match SECTION X. or SECTION X:
+    const regex = /(SECTION \d+[.:])([\s\S]*?)(?=SECTION \d+[.:]|$)/g;
+    const sections = [];
+    let match;
+    while ((match = regex.exec(body)) !== null) {
+      sections.push({ section: match[1].trim(), text: match[2].trim() });
+    }
+    return sections;
+  } else if (type === 'resolution') {
+    // Split by WHEREAS, and RESOLVED, clauses
+    const regex = /(WHEREAS,|RESOLVED,|FURTHER RESOLVED,)([\s\S]*?)(?=WHEREAS,|RESOLVED,|FURTHER RESOLVED,|$)/g;
+    const sections = [];
+    let match;
+    while ((match = regex.exec(body)) !== null) {
+      sections.push({ section: match[1].trim(), text: match[2].trim() });
+    }
+    return sections;
+  }
+  return [{ section: 'Body', text: body }];
+}
+
+// Helper: Call LanguageTool API for spelling/grammar
+// Only check spelling by disabling all non-spelling rules
+async function checkSpellingOnly(text: string): Promise<any[]> {
+  // Only disable categories unrelated to spelling; leave TYPOS enabled
+  const params = new URLSearchParams();
+  params.append('text', text);
+  params.append('language', 'en-US');
+  params.append('enabledOnly', 'false');
+  // Do NOT disable TYPOS; this is where spelling errors are reported
+  params.append('disabledCategories', 'GRAMMAR,STYLE,PUNCTUATION,CASING,CONFUSED_WORDS,REDUNDANCY,SEMANTICS,CLARITY,COMPOUNDING,NONSTANDARD_PHRASES,INCONSISTENCY,INFORMATION,TYPOGRAPHY,WHITESPACE,WORDINESS,NUMBERS,REGEX,OTHER');
+  const res = await fetch('https://api.languagetool.org/v2/check', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+  if (!res.ok) return [];
   const data = await res.json();
-  return {
-    errors: (data.matches || []).map((match: any) => {
-      return {
-        message: match.message || "",
-        context: match.context?.text || "",
-        offset: match.context?.offset || 0,
-        length: match.context?.length || 0,
-        replacements: (match.replacements || []).map((r: any) => r.value || ""),
-        rule: match.rule?.description || ""
-      }
-    }),
-    rateLimited: false
-  };
+  return data.matches || [];
+}
+
+// Helper: Call LanguageTool API for full grammar check (all rules enabled)
+async function checkGrammarFull(text: string): Promise<any[]> {
+  const params = new URLSearchParams();
+  params.append('text', text);
+  params.append('language', 'en-US');
+  params.append('enabledOnly', 'false');
+  // Do NOT disable any categories; check all grammar, style, spelling, etc.
+  const res = await fetch('https://api.languagetool.org/v2/check', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.matches || [];
 }
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('[API] Received legislation check request');
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     try {
       await rateLimiter(ip as string);
     } catch {
+      console.error('[API] Rate limit exceeded for IP:', ip);
       return NextResponse.json({
         error: "Rate limit exceeded.",
         message: "You have made too many requests. The limit is 5 requests per minute. Please wait a minute and try again. This protects our free AI resources for everyone."
       }, { status: 429 });
     }
     const { text, type, category, number, title } = await req.json()
+    console.log('[API] Request body:', { text, type, category, number, title });
 
     if (!text || !type || !category || !number || !title) {
+      console.error('[API] Missing required form fields', { text, type, category, number, title });
       return NextResponse.json({ error: "Missing required form fields" }, { status: 400 })
     }
 
     // Perform the simple, rule-based template checks first
-    const templateErrors = checkTemplateErrors(text, type, category, number, title)
+    const templateErrors = checkTemplateErrors(type, text, title)
+    console.log('[API] Template errors:', templateErrors);
 
+    // Spelling check (strict spelling only)
+    let spellingMatches = [];
+    try {
+      spellingMatches = await checkSpellingOnly(text);
+      console.log('[API] LanguageTool spelling matches:', spellingMatches);
+    } catch (err) {
+      console.error('[API] LanguageTool spelling error:', err);
+    }
+    let grammarSpellingErrors = [];
+    for (const match of spellingMatches) {
+      grammarSpellingErrors.push({
+        section: 'Body',
+        message: match.message,
+        offset: match.offset,
+        length: match.length,
+        context: match.context,
+        replacements: match.replacements,
+        rule: match.rule,
+        type: match.rule.issueType
+      });
+    }
+    if (grammarSpellingErrors.length >= 30) {
+      grammarSpellingErrors.push({
+        section: 'Body',
+        message: 'Warning: Only the first 30 misspelled words are shown due to API limits. Please correct these and recheck.',
+        offset: 0,
+        length: 0,
+        context: '',
+        replacements: [],
+        rule: { id: 'TOO_MANY_ERRORS', description: 'API limit' },
+        type: 'other',
+      });
+    }
+    // Full grammar check (all rules enabled)
+    let grammarErrors: any[] = [];
+    try {
+      const grammarMatches = await checkGrammarFull(text);
+      grammarErrors = grammarMatches.map(match => ({
+        section: 'Body',
+        message: match.message,
+        offset: match.offset,
+        length: match.length,
+        context: match.context,
+        replacements: match.replacements,
+        rule: match.rule,
+        type: match.rule.issueType
+      }));
+      console.log('[API] LanguageTool grammar matches:', grammarErrors);
+    } catch (err) {
+      console.error('[API] LanguageTool grammar error:', err);
+    }
+
+    // If there are any template or spelling errors, skip Gemini/AI review and readability
+    if (templateErrors.length > 0 || grammarSpellingErrors.length > 0) {
+      const feedback = {
+        templateErrors,
+        grammarSpellingErrors,
+        grammar: grammarErrors,
+        readability: { score: 0, suggestions: [] },
+        aiSuggestions: [],
+        isSubmittable: false,
+        overallScore: 0,
+        grammarSpellingRateLimited: false,
+        aiReviewError: null,
+      };
+      console.log('[API] Final feedback object (errors present, skipping AI):', feedback);
+      return NextResponse.json(feedback);
+    }
+
+    // Gemini API call
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
-
     const prompt = `
       You are an expert debate coach specializing in high school Congressional Debate.
       Your task is to review a piece of legislation and provide feedback in four specific categories: Grammar, Readability, AI Suggestions, and an Overall Score using a detailed rubric.
@@ -211,25 +440,51 @@ export async function POST(req: NextRequest) {
 
       Now, analyze the provided legislation text and return only the JSON object.
     `
-
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const aiResponseText = response.text()
-
-    // Clean the response to ensure it's valid JSON
-    const cleanedJsonText = aiResponseText.replace(/^```json\s*|```\s*$/g, "")
-    const aiFeedback = JSON.parse(cleanedJsonText)
+    console.log('[API] Calling Gemini API...');
+    let aiResponseText = '';
+    let aiFeedback = null;
+    let geminiError = null;
+    try {
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      aiResponseText = await response.text()
+      console.log('[API] Gemini raw response:', aiResponseText);
+      // Clean the response to ensure it's valid JSON
+      const cleanedJsonText = aiResponseText.replace(/^```json\s*|```\s*$/g, "")
+      aiFeedback = JSON.parse(cleanedJsonText)
+      console.log('[API] Gemini parsed feedback:', aiFeedback);
+    } catch (err) {
+      geminiError = err;
+      // Check for overload/503
+      const errMsg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+      if (errMsg.includes('503') || errMsg.includes('overloaded')) {
+        geminiError = 'AI review service is temporarily overloaded. Please try again in a few minutes.';
+      } else {
+        geminiError = 'AI review service is temporarily unavailable.';
+      }
+      console.error('[API] Gemini API or JSON parse error:', err);
+    }
 
     // Combine rule-based errors with AI feedback
     const finalFeedback = {
       templateErrors,
-      grammarSpellingErrors: [], // Empty array since we removed LanguageTool
-      ...aiFeedback,
+      grammarSpellingErrors,
+      grammar: grammarErrors,
+      readability: aiFeedback?.readability || { score: 0, suggestions: [] },
+      aiSuggestions: aiFeedback?.aiSuggestions || [],
+      isSubmittable: aiFeedback?.isSubmittable || false, // isSubmittable: only if no template errors and no spelling errors
+      overallScore: aiFeedback?.overallScore || 0,
+      grammarSpellingRateLimited: false,
+      aiReviewError: geminiError,
     }
+    console.log('[API] Final feedback object:', finalFeedback);
 
     return NextResponse.json(finalFeedback)
   } catch (error) {
-    console.error("Error processing legislation:", error)
+    console.error('[API] Error processing legislation:', error);
+    if (error instanceof Error && error.stack) {
+      console.error('[API] Stack trace:', error.stack);
+    }
     return NextResponse.json({ error: "Failed to process legislation" }, { status: 500 })
   }
 } 

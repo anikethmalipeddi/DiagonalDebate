@@ -59,9 +59,12 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
     }
 
     const captainEmails = process.env.CAPTAIN_EMAILS
+    // If submittedBy looks like an email, add to cc
+    const ccList = /.+@.+\..+/.test(legislationData.submittedBy) ? legislationData.submittedBy : undefined;
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: captainEmails,
+      cc: ccList,
       subject: `New ${legislationData.type.toUpperCase()} Submitted by ${legislationData.submittedBy}: ${legislationData.category.charAt(0).toUpperCase() + legislationData.category.slice(1).toLowerCase()} ${legislationData.number}`,
       html: `
         <div style="font-family: Arial, sans-serif; color: #222;">
@@ -92,7 +95,7 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       ]
     }
 
-    console.log('Attempting to send email to:', captainEmails)
+    console.log('Attempting to send email to:', captainEmails, 'cc:', ccList)
     const result = await transporter.sendMail(mailOptions)
     console.log('Email sent successfully:', result.messageId)
     return result
