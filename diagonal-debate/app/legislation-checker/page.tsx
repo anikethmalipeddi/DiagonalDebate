@@ -973,31 +973,6 @@ export default function LegislationCheckerPage() {
 
                         <TabsContent value="grammarSpelling">
                           <div className="space-y-4">
-                            {feedback.aiReviewError && (
-                              <div className="text-red-600 text-sm mb-4 flex items-center">
-                                <AlertCircle className="inline w-4 h-4 mr-2" />
-                                {feedback.aiReviewError}
-                              </div>
-                            )}
-                            <div className="flex items-center space-x-3">
-                              {feedback.grammarSpellingErrors.length > 0 ? (
-                                <AlertCircle className="w-6 h-6 text-red-600" />
-                              ) : (
-                                <CheckCircle className="w-6 h-6 text-green-600" />
-                              )}
-                              <h3 className="font-semibold text-black text-lg">
-                                Grammar & Spelling
-                              </h3>
-                              <Badge
-                                className={
-                                  feedback.grammarSpellingErrors.length > 0
-                                    ? "bg-red-100 text-red-800 px-3 py-1 text-sm font-medium"
-                                    : "bg-green-100 text-green-800 px-3 py-1 text-sm font-medium"
-                                }
-                              >
-                                {feedback.grammarSpellingErrors.length}
-                              </Badge>
-                            </div>
                             {feedback.grammarSpellingErrors.length > 0 ? (
                               <div className="space-y-3">
                                 {feedback.grammarSpellingErrors.map((err, idx) => (
@@ -1103,21 +1078,29 @@ export default function LegislationCheckerPage() {
                                 {feedback.aiSuggestions.length}
                               </Badge>
                             </div>
-                            {(feedback.templateErrors.length > 0 || feedback.grammarSpellingErrors.length > 0) && (!feedback.aiSuggestions || feedback.aiSuggestions.length === 0) ? (
-                              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-purple-200 rounded-xl bg-purple-50">
-                                <AlertCircle className="w-16 h-16 text-purple-600 mb-3" />
-                                <p className="text-lg font-semibold text-purple-700 mb-1">AI suggestions unavailable</p>
-                                <p className="text-sm text-purple-600">Please fix all template and grammar/spelling errors to enable AI-powered suggestions.</p>
+                            {/* Show AI review error if present, as a purple error/info box */}
+                            {feedback.aiReviewError && (
+                              <div className="flex items-center gap-2 border border-purple-300 bg-purple-50 text-purple-700 rounded-lg px-4 py-3 mb-2">
+                                <Sparkles className="w-5 h-5 text-purple-600" />
+                                <span>{feedback.aiReviewError}</span>
+                              </div>
+                            )}
+                            {/* Render AI suggestions or the purple 'no issues' box */}
+                            {feedback.aiSuggestions.length === 0 && !feedback.aiReviewError ? (
+                              <div className="flex flex-col items-center justify-center border-2 border-dashed border-purple-300 bg-purple-50 rounded-xl p-8 mt-2">
+                                <Sparkles className="w-12 h-12 text-purple-400 mb-2" />
+                                <div className="text-2xl font-bold text-purple-700 mb-1">No issues found in this category.</div>
+                                <div className="text-purple-600 text-lg">Everything looks good!</div>
                               </div>
                             ) : (
-                              renderFeedbackContent(
-                                "AI Enhancement Suggestions",
+                              feedback.aiSuggestions.length > 0 && renderFeedbackContent(
+                                '',
                                 feedback.aiSuggestions,
-                                "text-purple-600",
-                                "bg-purple-100 text-purple-800",
-                                "bg-purple-50 border-purple-200 text-purple-800",
+                                'text-purple-600',
+                                'bg-purple-100 text-purple-800',
+                                'border-purple-300 bg-purple-50 text-purple-700',
                                 Sparkles,
-                                false // suppress header in AI tab
+                                false
                               )
                             )}
                           </div>
