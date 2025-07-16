@@ -310,6 +310,11 @@ export default function LegislationCheckerPage() {
     setTitleFontSize(fontSize)
   }, [formData.title, formData.type])
 
+  // Reset isReviewed to false whenever formData changes
+  useEffect(() => {
+    setIsReviewed(false);
+  }, [formData.type, formData.category, formData.number, formData.title, formData.text]);
+
   const isFormComplete = Object.values(formData).every((value) => value.trim() !== "") && numberingError === null && !titleWarning
   // Replace the isSubmittable logic to use >75 instead of 80
   const isFormSubmittable = (typeof feedback.overallScore === 'number' ? feedback.overallScore : 0) > 75 && feedback.templateErrors.length === 0 && feedback.grammarSpellingErrors.length === 0;
