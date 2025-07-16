@@ -105,6 +105,7 @@ export default function LegislationCheckerPage() {
     isSubmittable: boolean
     grammarSpellingRateLimited: boolean
     overallScore?: number
+    aiReviewError?: string
   }>({
     templateErrors: [],
     grammarSpellingErrors: [],
@@ -123,6 +124,23 @@ export default function LegislationCheckerPage() {
   const titleMeasureRef = useRef<HTMLSpanElement>(null)
   const [showNumberSuggestions, setShowNumberSuggestions] = useState(false)
   const [filteredNumbers, setFilteredNumbers] = useState<string[]>([])
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch {
+        setIsAuthenticated(false);
+      }
+    }
+    checkAuth();
+  }, []);
 
   // Update filtered numbers when category changes
   useEffect(() => {
@@ -293,6 +311,8 @@ export default function LegislationCheckerPage() {
   }, [formData.title, formData.type])
 
   const isFormComplete = Object.values(formData).every((value) => value.trim() !== "") && numberingError === null && !titleWarning
+  // Replace the isSubmittable logic to use >75 instead of 80
+  const isFormSubmittable = (typeof feedback.overallScore === 'number' ? feedback.overallScore : 0) > 75 && feedback.templateErrors.length === 0 && feedback.grammarSpellingErrors.length === 0;
 
   const getCompletionPercentage = () => {
     const fields = Object.values(formData)
@@ -383,10 +403,10 @@ export default function LegislationCheckerPage() {
     }
     console.log('Submit button clicked!')
     console.log('Starting submission process...')
-    if (!feedback.isSubmittable || feedback.templateErrors.length > 0) {
+    if (!isFormSubmittable) {
       console.log('Submission blocked by validation')
       toast.error("Cannot Submit", {
-        description: "Please fix all template errors before submitting to captains.",
+        description: "Please fix all template errors and ensure overall score is above 75 before submitting to captains.",
       })
       return
     }
@@ -503,6 +523,7 @@ export default function LegislationCheckerPage() {
     }
   }
 
+  // Update renderFeedbackContent to accept a showHeader flag (default true)
   const renderFeedbackContent = (
     title: string,
     items: string[],
@@ -510,6 +531,7 @@ export default function LegislationCheckerPage() {
     badgeClass: string,
     contentClass: string,
     icon: React.ElementType = AlertCircle,
+    showHeader: boolean = true,
   ) => {
     const hasItems = items.length > 0
     const finalBadgeClass = hasItems ? badgeClass : "bg-green-100 text-green-800"
@@ -519,17 +541,19 @@ export default function LegislationCheckerPage() {
 
     return (
       <div className="space-y-4">
-        <div className="flex items-center space-x-3">
-          {hasItems ? (
-            <IconComponent className={`w-6 h-6 ${iconColor}`} />
-          ) : isTemplate ? (
-            <Puzzle className="w-6 h-6 text-green-600" />
-          ) : (
-            <CheckCircle className="w-6 h-6 text-green-600" />
-          )}
-          <h3 className="font-semibold text-gray-900 text-lg">{title}</h3>
-          <Badge className={`${finalBadgeClass} px-3 py-1 text-sm font-medium`}>{items.length}</Badge>
-        </div>
+        {showHeader && (
+          <div className="flex items-center space-x-3">
+            {hasItems ? (
+              <IconComponent className={`w-6 h-6 ${iconColor}`} />
+            ) : isTemplate ? (
+              <Puzzle className="w-6 h-6 text-green-600" />
+            ) : (
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            )}
+            <h3 className="font-semibold text-gray-900 text-lg">{title}</h3>
+            <Badge className={`${finalBadgeClass} px-3 py-1 text-sm font-medium`}>{items.length}</Badge>
+          </div>
+        )}
         {hasItems ? (
           <div className="space-y-3">
             {items.map((item, index) => (
@@ -788,37 +812,45 @@ export default function LegislationCheckerPage() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-col space-y-3 pt-4">
-                    <Button
-                      onClick={handleReview}
-                      variant="primary"
-                      disabled={!isFormComplete || isLoading}
-                      className="w-full"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center justify-center">
-                          <Sparkles className="w-5 h-5 animate-spin" />
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-2">
-                          <Zap className="w-5 h-5" />
-                          <span>Review My Legislation</span>
+                    <div className="relative group">
+                      <Button
+                        onClick={handleReview}
+                        variant="primary"
+                        disabled={!isFormComplete || isLoading || isReviewed || !isAuthenticated}
+                        className="w-full"
+                        title={!isAuthenticated ? "You must be logged in to review your legislation." : undefined}
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center justify-center">
+                            <Sparkles className="w-5 h-5 animate-spin" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Zap className="w-5 h-5" />
+                            <span>Review My Legislation</span>
+                          </div>
+                        )}
+                      </Button>
+                      {!isAuthenticated && (
+                        <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-max bg-white border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2 shadow-lg z-10 group-hover:block">
+                          <span>You must be logged in to review your legislation. <a href="/auth" className="underline text-red-700 font-semibold">Log in</a></span>
                         </div>
                       )}
-                    </Button>
+                    </div>
 
                     {isReviewed && !isLoading && (
                       <Button
                         onClick={handleSubmit}
                         variant="primary"
-                        disabled={!!bodyWarning || !isFormComplete || isLoading || !isReviewed || feedback.templateErrors.length > 0}
+                        disabled={!isFormSubmittable || isSubmitting}
                         className="w-full text-lg font-bold py-3 disabled:bg-gray-400 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-300"
                         title={
                           isSubmitting
                             ? "Submitting your legislation..."
                             : !isReviewed
                               ? "You must review your legislation before submitting."
-                              : feedback.templateErrors.length > 0
-                                ? "Submission is disabled until all template and critical issues are resolved."
+                              : !isFormSubmittable
+                                ? "Submission is disabled until overall score is above 75 and all template and critical issues are resolved."
                                 : bodyWarning
                                   ? bodyWarning
                                   : titleWarning
@@ -936,13 +968,25 @@ export default function LegislationCheckerPage() {
 
                         <TabsContent value="grammarSpelling">
                           <div className="space-y-4">
+                            {feedback.aiReviewError && (
+                              <div className="text-red-600 text-sm mb-4 flex items-center">
+                                <AlertCircle className="inline w-4 h-4 mr-2" />
+                                {feedback.aiReviewError}
+                              </div>
+                            )}
                             <div className="flex items-center space-x-3">
-                              <CheckCircle className="w-6 h-6 text-green-600" />
-                              <h3 className="font-semibold text-gray-900 text-lg">Grammar & Spelling</h3>
+                              {feedback.grammarSpellingErrors.length > 0 ? (
+                                <AlertCircle className="w-6 h-6 text-red-600" />
+                              ) : (
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                              )}
+                              <h3 className="font-semibold text-black text-lg">
+                                Grammar & Spelling
+                              </h3>
                               <Badge
                                 className={
                                   feedback.grammarSpellingErrors.length > 0
-                                    ? "bg-blue-100 text-blue-800 px-3 py-1 text-sm font-medium"
+                                    ? "bg-red-100 text-red-800 px-3 py-1 text-sm font-medium"
                                     : "bg-green-100 text-green-800 px-3 py-1 text-sm font-medium"
                                 }
                               >
@@ -954,26 +998,37 @@ export default function LegislationCheckerPage() {
                                 {feedback.grammarSpellingErrors.map((err, idx) => (
                                   <div
                                     key={idx}
-                                    className="p-4 border rounded-lg bg-blue-50 border-blue-200 hover:shadow-sm transition-shadow"
+                                    className="p-4 border rounded-lg bg-red-50 border-red-200 hover:shadow-sm transition-shadow"
                                   >
-                                    <div className="text-sm text-blue-900 font-medium mb-2">{err.message}</div>
+                                    <div className="font-semibold text-red-800 mb-2">{err.message}</div>
                                     {err.context && (
-                                      <div className="text-xs text-gray-700 mb-2 font-mono bg-white p-2 rounded border">
-                                        ...{err.context.substring(0, err.offset)}
-                                        <span className="bg-blue-200 text-blue-900 font-semibold px-1 rounded">
-                                          {err.context.substring(err.offset, err.offset + err.length)}
-                                        </span>
-                                        {err.context.substring(err.offset + err.length)}...
-                                      </div>
+                                      typeof err.context === 'object' && err.context !== null && 'text' in err.context ? (
+                                        (() => { const ctx = err.context as { text: string; offset: number; length: number };
+                                          return (
+                                            <div>
+                                              ...{ctx.text.substring(0, ctx.offset)}
+                                              <span>{ctx.text.substring(ctx.offset, ctx.offset + ctx.length)}</span>
+                                              ...{ctx.text.substring(ctx.offset + ctx.length)}
+                                            </div>
+                                          );
+                                        })()
+                                      ) : (
+                                        <div>
+                                          ...{err.context.substring(0, err.offset)}
+                                          <span>{err.context.substring(err.offset, err.offset + err.length)}</span>
+                                          ...{err.context.substring(err.offset + err.length)}
+                                        </div>
+                                      )
                                     )}
+                                    {/* Suggestions for spelling/grammar corrections */}
                                     {err.replacements && err.replacements.length > 0 && (
-                                      <div className="text-xs text-blue-700 mb-1">
-                                        <strong>Suggestions:</strong> {err.replacements.join(", ")}
+                                      <div className="text-xs text-gray-700 mt-1">
+                                        <strong>Suggestions:</strong> {err.replacements.map((r: any) => r.value).join(', ')}
                                       </div>
                                     )}
                                     {err.rule && (
                                       <div className="text-xs text-gray-500">
-                                        <strong>Rule:</strong> {err.rule}
+                                        <strong>Rule:</strong> {typeof err.rule === 'object' && err.rule !== null ? ((err.rule as any)?.id || (err.rule as any)?.description || JSON.stringify(err.rule)) : String(err.rule)}
                                       </div>
                                     )}
                                   </div>
@@ -992,56 +1047,75 @@ export default function LegislationCheckerPage() {
                         <TabsContent value="readability">
                           <div className="space-y-4">
                             <div className="flex items-center space-x-3">
-                              {(() => { console.log('Readability Content Icon:', BookOpen); return <BookOpen className="w-6 h-6" /> })()}
+                              <BookOpen className={`w-6 h-6 ${feedback.readability.score > 60 ? 'text-green-600' : 'text-red-600'}`} />
                               <h3 className="font-semibold text-gray-900 text-lg">Readability Analysis</h3>
-                              <Badge className="bg-green-100 text-green-800 px-3 py-1 text-sm font-medium">
+                              <Badge className={`${feedback.readability.score > 60 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-3 py-1 text-sm font-medium`}>
                                 Score: {feedback.readability.score}/100
                               </Badge>
                             </div>
-                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm mb-4">
-                              <div className="flex justify-between text-sm mb-2">
-                                <span className="text-gray-600">Readability Score</span>
-                                <span className="text-gray-900 font-medium">{feedback.readability.score}/100</span>
-                              </div>
-                              <Progress value={feedback.readability.score} className="h-3" />
-                              <div className="text-xs text-gray-500 mt-1">
-                                {feedback.readability.score >= 80
-                                  ? "Excellent readability"
-                                  : feedback.readability.score >= 60
-                                    ? "Good readability"
-                                    : "Needs improvement"}
+                            {/* Cool horizontal bar for readability score */}
+                            <div className="w-full my-2">
+                              <div className="relative h-4 rounded-full overflow-hidden bg-gray-200">
+                                <div
+                                  className={`absolute left-0 top-0 h-4 rounded-full transition-all duration-500 ${feedback.readability.score > 60 ? 'bg-green-400' : 'bg-red-400'}`}
+                                  style={{ width: `${Math.max(0, Math.min(100, feedback.readability.score))}%` }}
+                                />
                               </div>
                             </div>
-                            {feedback.readability.suggestions.length > 0 ? (
-                              <div className="space-y-3">
+                            {(feedback.templateErrors.length > 0 || feedback.grammarSpellingErrors.length > 0) && feedback.readability.score === 0 && feedback.readability.suggestions.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-red-200 rounded-xl bg-red-50">
+                                <AlertCircle className="w-16 h-16 text-red-500 mb-3" />
+                                <p className="text-lg font-semibold text-red-700 mb-1">Readability analysis unavailable</p>
+                                <p className="text-sm text-red-600">Please fix all template and grammar/spelling errors to enable readability feedback.</p>
+                              </div>
+                            ) : feedback.readability.suggestions.length > 0 ? (
+                              <div className={`space-y-3`}>
                                 {feedback.readability.suggestions.map((suggestion, index) => (
                                   <div
                                     key={index}
-                                    className="p-4 bg-green-50 border border-green-200 rounded-lg hover:shadow-sm transition-shadow"
+                                    className={`p-4 border rounded-lg hover:shadow-sm transition-shadow ${feedback.readability.score > 60 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}
                                   >
-                                    <p className="text-sm text-green-800 leading-relaxed">{suggestion}</p>
+                                    <p className="text-sm leading-relaxed">{suggestion}</p>
                                   </div>
                                 ))}
                               </div>
                             ) : (
-                              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-green-200 rounded-xl bg-green-50">
-                                <CheckCircle2 className="w-16 h-16 text-green-500 mb-3" />
-                                <p className="text-lg font-semibold text-green-700 mb-1">Excellent Readability!</p>
-                                <p className="text-sm text-green-600">Your text is clear and easy to understand.</p>
+                              <div className={`flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-xl ${feedback.readability.score > 60 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}> 
+                                <CheckCircle2 className={`w-16 h-16 mb-3 ${feedback.readability.score > 60 ? 'text-green-500' : 'text-red-500'}`} />
+                                <p className={`text-lg font-semibold mb-1 ${feedback.readability.score > 60 ? 'text-green-700' : 'text-red-700'}`}>{feedback.readability.score > 60 ? 'Excellent Readability!' : 'Needs Improvement'}</p>
+                                <p className={`text-sm ${feedback.readability.score > 60 ? 'text-green-600' : 'text-red-600'}`}>{feedback.readability.score > 60 ? 'Your text is clear and easy to understand.' : 'Your text is difficult to read. Try simplifying your language and sentence structure.'}</p>
                               </div>
                             )}
                           </div>
                         </TabsContent>
 
                         <TabsContent value="ai">
-                          {renderFeedbackContent(
-                            "AI Enhancement Suggestions",
-                            feedback.aiSuggestions,
-                            "text-purple-600",
-                            "bg-purple-100 text-purple-800",
-                            "bg-purple-50 border-purple-200 text-purple-800",
-                            Sparkles,
-                          )}
+                          <div className="space-y-4">
+                            <div className="flex items-center space-x-3">
+                              <Sparkles className="w-6 h-6 text-purple-600" />
+                              <h3 className="font-semibold text-gray-900 text-lg">AI Enhancement Suggestions</h3>
+                              <Badge className="bg-purple-100 text-purple-800 px-3 py-1 text-sm font-medium">
+                                {feedback.aiSuggestions.length}
+                              </Badge>
+                            </div>
+                            {(feedback.templateErrors.length > 0 || feedback.grammarSpellingErrors.length > 0) && (!feedback.aiSuggestions || feedback.aiSuggestions.length === 0) ? (
+                              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-purple-200 rounded-xl bg-purple-50">
+                                <AlertCircle className="w-16 h-16 text-purple-600 mb-3" />
+                                <p className="text-lg font-semibold text-purple-700 mb-1">AI suggestions unavailable</p>
+                                <p className="text-sm text-purple-600">Please fix all template and grammar/spelling errors to enable AI-powered suggestions.</p>
+                              </div>
+                            ) : (
+                              renderFeedbackContent(
+                                "AI Enhancement Suggestions",
+                                feedback.aiSuggestions,
+                                "text-purple-600",
+                                "bg-purple-100 text-purple-800",
+                                "bg-purple-50 border-purple-200 text-purple-800",
+                                Sparkles,
+                                false // suppress header in AI tab
+                              )
+                            )}
+                          </div>
                         </TabsContent>
                       </div>
                     </Tabs>
