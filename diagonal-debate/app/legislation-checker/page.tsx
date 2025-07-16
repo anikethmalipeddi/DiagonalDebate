@@ -822,8 +822,9 @@ export default function LegislationCheckerPage() {
                         onClick={handleReview}
                         variant="primary"
                         disabled={!isFormComplete || isLoading || isReviewed || !isAuthenticated}
-                        className="w-full"
-                        title={!isAuthenticated ? "You must be logged in to review your legislation." : undefined}
+                        className={`w-full ${!isAuthenticated ? 'bg-gray-300 text-gray-500 cursor-not-allowed border-gray-200 hover:bg-gray-300 hover:text-gray-500' : ''}`}
+                        title={!isAuthenticated ? 'You must be logged in to review your legislation.' : undefined}
+                        tabIndex={!isAuthenticated ? -1 : 0}
                       >
                         {isLoading ? (
                           <div className="flex items-center justify-center">
@@ -837,7 +838,7 @@ export default function LegislationCheckerPage() {
                         )}
                       </Button>
                       {!isAuthenticated && (
-                        <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-max bg-white border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2 shadow-lg z-10 group-hover:block">
+                        <div className="mt-2 text-center text-sm text-gray-500">
                           <span>You must be logged in to review your legislation. <a href="/auth" className="underline text-red-700 font-semibold">Log in</a></span>
                         </div>
                       )}
