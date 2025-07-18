@@ -133,3 +133,5 @@ model LessonEnrollment {
 
   @@unique([userId, lessonFileName]) // One enrollment per user per lesson
 }
+
+

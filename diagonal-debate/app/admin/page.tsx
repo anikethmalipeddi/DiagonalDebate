@@ -6,7 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Calendar, UserCheck, ShieldAlert, BookOpen, Star, ChevronDown, ChevronRight } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Users, Calendar, UserCheck, ShieldAlert, BookOpen, Star, ChevronDown, ChevronRight, Plus, Edit, Trash2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useState, useEffect } from "react"
@@ -59,7 +63,7 @@ export default function AdminPage() {
         if (data.user) {
           setCurrentUser(data.user)
         }
-  })
+      })
   
     // Fetch users
     fetch('/api/users')
@@ -78,6 +82,8 @@ export default function AdminPage() {
           setEventsWithSignups(data.events)
         }
       })
+
+
   }, [])
 
   const handleAddUser = async (eventId: string) => {
@@ -108,7 +114,7 @@ export default function AdminPage() {
         toast({
           title: "Success",
           description: `User added to event successfully`,
-  })
+        })
 
         // Refresh events data
         const eventsResponse = await fetch('/api/events')
@@ -136,6 +142,8 @@ export default function AdminPage() {
       setLoading(prev => ({ ...prev, [eventId]: false }))
     }
   }
+
+
 
   if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
     return (
@@ -188,6 +196,7 @@ export default function AdminPage() {
                   <div className="text-2xl font-bold">{totalEvents}</div>
                 </CardContent>
               </Card>
+
             </div>
             {/* Events Table */}
             <Card>
@@ -349,6 +358,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
           <TabsContent value="lessons">
               <Card>
                 <CardHeader>

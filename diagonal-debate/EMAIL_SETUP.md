@@ -4,7 +4,19 @@
 When users submit legislation through the Legislation Checker, the system:
 1. Generates a properly formatted PDF using the templates
 2. Emails the PDF to team captains for review
-3. Stores the submission record in the database
+3. Sends a confirmation email to the user who submitted the legislation
+4. Stores the submission record in the database
+
+## Captain Management
+
+Captains are now managed through the admin interface instead of environment variables. To add or manage captains:
+
+1. **Access the Admin Panel**: Navigate to `/admin` and log in with an admin account
+2. **Go to Captains Tab**: Click on the "Captains" tab in the admin dashboard
+3. **Add Captains**: Use the "Add Captain" button to add new captains with their name and email
+4. **Manage Captains**: Edit or delete existing captains, or toggle their active status
+
+The system will automatically use all active captains when sending legislation submissions.
 
 ## Required Environment Variables
 
@@ -12,10 +24,14 @@ Add these to your `.env.local` file:
 
 ```env
 # Email Configuration
-EMAIL_USER="your-email@gmail.com"
-EMAIL_PASS="your-app-password"
-CAPTAIN_EMAILS="captain1@example.com,captain2@example.com"
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSTWO=your-app-password
+SMTP_FROM=your-email@gmail.com
 ```
+
+**Note**: The `CAPTAIN_EMAILS` environment variable is no longer needed as captains are now managed through the database.
 
 ## Gmail Setup (Recommended)
 
@@ -24,7 +40,7 @@ CAPTAIN_EMAILS="captain1@example.com,captain2@example.com"
    - Go to https://myaccount.google.com/apppasswords
    - Select "Mail" and your device
    - Copy the generated 16-character password
-3. **Use the App Password** in `EMAIL_PASS` (not your regular password)
+3. **Use the App Password** in `SMTP_PASSTWO` (not your regular password)
 
 ## Alternative Email Services
 
@@ -59,133 +75,18 @@ const transporter = nodemailer.createTransport({
 To test the email functionality:
 
 1. Set up the environment variables
-2. Submit legislation through the form
-3. Check the console logs for email status
-4. Verify captains receive the PDF attachment
+2. Add at least one captain through the admin interface
+3. Submit legislation through the form
+4. Check the console logs for email status
+5. Verify captains receive the PDF attachment
+6. Verify the user receives a confirmation email
 
-## PDF Format
+## Email Flow
 
-The generated PDF includes:
-- Proper header (BILL/RESOLUTION/AMENDMENT)
-- Category and number
-- Title
-- Line-numbered content
-- Section headers in bold
-- Footer with submission details
-- Professional formatting matching debate standards 
+When legislation is submitted:
 
-# Email Setup Guide
-
-## Environment Variables Required
-
-The application uses the following environment variables for email configuration:
-
-```bash
-# SMTP Server Configuration
-SMTP_HOST=your-smtp-server.com
-SMTP_PORT=587
-SMTP_USER=your-email@domain.com
-SMTP_PASS=your-password-or-app-password
-SMTP_FROM=your-email@domain.com
-
-# Email Recipients
-CAPTAIN_EMAILS=captain1@domain.com,captain2@domain.com
-```
-
-## Gmail Setup (Most Common)
-
-If you're using Gmail, follow these steps:
-
-### Option 1: Use Gmail App Passwords (Recommended)
-
-1. **Enable 2-Factor Authentication** on your Gmail account
-   - Go to https://myaccount.google.com/security
-   - Enable 2-Step Verification
-
-2. **Generate an App Password**
-   - Go to https://myaccount.google.com/apppasswords
-   - Select "Mail" as the app
-   - Select "Other" as the device (name it "Diagonal Debate App")
-   - Click "Generate"
-   - Copy the 16-character password
-
-3. **Update Environment Variables**
-   ```bash
-   # In your .env.local file
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=your.email@gmail.com
-   SMTP_PASS=your-16-character-app-password
-   SMTP_FROM=your.email@gmail.com
-   CAPTAIN_EMAILS=captain1@gmail.com,captain2@gmail.com
-   ```
-
-### Option 2: Use Gmail OAuth2 (Advanced)
-
-For production environments, consider using OAuth2 instead of app passwords.
-
-## Other Email Providers
-
-### SendGrid
-```bash
-SMTP_HOST=smtp.sendgrid.net
-SMTP_PORT=587
-SMTP_USER=apikey
-SMTP_PASS=your-sendgrid-api-key
-SMTP_FROM=your-verified-sender@domain.com
-```
-
-### Mailgun
-```bash
-SMTP_HOST=smtp.mailgun.org
-SMTP_PORT=587
-SMTP_USER=your-mailgun-username
-SMTP_PASS=your-mailgun-password
-SMTP_FROM=your-verified-sender@domain.com
-```
-
-### Outlook/Hotmail
-```bash
-SMTP_HOST=smtp-mail.outlook.com
-SMTP_PORT=587
-SMTP_USER=your.email@outlook.com
-SMTP_PASS=your-password-or-app-password
-SMTP_FROM=your.email@outlook.com
-```
-
-## Testing Email Configuration
-
-You can test your email configuration by:
-
-1. Setting up the environment variables
-2. Restarting the development server
-3. Submitting a piece of legislation through the app
-4. Checking the console logs for email configuration debug information
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Authentication Failed**: 
-   - For Gmail: Use an App Password instead of your regular password
-   - Ensure 2-factor authentication is enabled
-   - Check that the SMTP_USER and SMTP_PASS are correct
-
-2. **Connection Timeout**:
-   - Verify SMTP_HOST and SMTP_PORT are correct
-   - Check firewall settings
-   - Try different ports (587, 465, 25)
-
-3. **Sender Not Verified**:
-   - Some providers require sender verification
-   - Check your email provider's documentation
-
-### Debug Information
-
-The application logs debug information about email configuration on startup. Look for:
-- Which environment variables are set
-- Email server connection status
-- Any authentication errors
+1. **To Captains**: Email with PDF attachment containing the legislation details and review instructions
+2. **To User**: Confirmation email with submission details and list of captains who will review
 
 ## PDF Format
 
