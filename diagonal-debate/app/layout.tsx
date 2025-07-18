@@ -5,6 +5,7 @@ import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/sonner"
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata: Metadata = {
   title: "DiagonalDebate - Congressional Debate Legislation Assistant",
@@ -41,6 +42,7 @@ export default function RootLayout({
         <Footer />
         <Toaster />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
