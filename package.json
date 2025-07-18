@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
     "pdfjs-dist": "^5.3.31",
     "react-pdf": "^10.0.1"
   }
