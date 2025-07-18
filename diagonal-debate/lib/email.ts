@@ -1,12 +1,11 @@
 import nodemailer from 'nodemailer'
+import { prisma } from './prisma'
 
 // Debug environment variables
-console.log('Email Configuration Debug:')
+console.log('SMTP Debug Info:')
 console.log('SMTP_HOST:', process.env.SMTP_HOST ? 'Set' : 'Not set')
-console.log('SMTP_PORT:', process.env.SMTP_PORT ? 'Set' : 'Not set')
 console.log('SMTP_USER:', process.env.SMTP_USER ? 'Set' : 'Not set')
-console.log('SMTP_PASSTWO:', process.env.SMTP_PASSTWO ? 'Set (length: ' + process.env.SMTP_PASSTWO.length + ')' : 'Not set')
-console.log('SMTP_FROM:', process.env.SMTP_FROM ? 'Set' : 'Not set')
+console.log('SMTP_PASSTWO:', process.env.SMTP_PASSTWO ? 'Set' : 'Not set')
 console.log('CAPTAIN_EMAILS:', process.env.CAPTAIN_EMAILS ? 'Set' : 'Not set')
 
 // Email configuration with better error handling
@@ -54,13 +53,15 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       throw new Error('SMTP_USER or SMTP_PASSTWO environment variables are not set')
     }
     
-    if (!process.env.CAPTAIN_EMAILS) {
+    // Use CAPTAIN_EMAILS environment variable
+    const captainEmails = process.env.CAPTAIN_EMAILS
+    if (!captainEmails) {
       throw new Error('CAPTAIN_EMAILS environment variable is not set')
     }
-
-    const captainEmails = process.env.CAPTAIN_EMAILS
+    
     // If submittedBy looks like an email, add to cc
     const ccList = /.+@.+\..+/.test(legislationData.submittedBy) ? legislationData.submittedBy : undefined;
+    
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: captainEmails,
@@ -95,9 +96,46 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       ]
     }
 
-    console.log('Attempting to send email to:', captainEmails, 'cc:', ccList)
+    console.log('Attempting to send email to captains:', captainEmails, 'cc:', ccList)
     const result = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully:', result.messageId)
+    console.log('Email sent successfully to captains:', result.messageId)
+    
+    // Also send confirmation email to the user if they provided an email
+    if (ccList) {
+      const userMailOptions = {
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: ccList,
+        subject: `Your ${legislationData.type.toUpperCase()} has been submitted: ${legislationData.title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; color: #222;">
+            <h2 style="color: #2a4365;">Legislation Submission Confirmation</h2>
+            <p>Dear ${legislationData.submittedBy},</p>
+            <p>Your legislation has been successfully submitted and sent to the team captains for review.</p>
+            <table style="border-collapse: collapse; margin: 16px 0;">
+              <tr><td style="font-weight: bold;">Type:</td><td>${legislationData.type.toUpperCase()}</td></tr>
+              <tr><td style="font-weight: bold;">Category:</td><td>${legislationData.category}</td></tr>
+              <tr><td style="font-weight: bold;">Number:</td><td>${legislationData.number}</td></tr>
+              <tr><td style="font-weight: bold;">Title:</td><td>${legislationData.title}</td></tr>
+              <tr><td style="font-weight: bold;">Submitted at:</td><td>${legislationData.submittedAt.toLocaleString()}</td></tr>
+            </table>
+            <p>Your legislation has been reviewed by our platform and passed initial checks. It has been forwarded to the team captains for final review.</p>
+            <p>You will be notified once the captains have reviewed your submission.</p>
+            <p style="font-size: 0.95em; color: #555;">Thank you for using DiagonalDebate!</p>
+          </div>
+        `,
+        attachments: [
+          {
+            filename: `${legislationData.number}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ]
+      }
+      
+      const userResult = await transporter.sendMail(userMailOptions)
+      console.log('Confirmation email sent successfully to user:', userResult.messageId)
+    }
+    
     return result
     
   } catch (error) {

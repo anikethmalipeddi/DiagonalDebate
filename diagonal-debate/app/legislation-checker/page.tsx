@@ -25,6 +25,7 @@ import {
   Shield,
   Award,
   Puzzle,
+  Info,
 } from "lucide-react"
 import { Toaster, toast } from "sonner"
 import { ScrollAnimation } from "@/components/scroll-animation"
@@ -226,6 +227,32 @@ export default function LegislationCheckerPage() {
             }
           } else {
             consecutive = 0
+          }
+        }
+      }
+      
+      // 6. Block content before proper starting sections
+      if (!warning) {
+        const trimmedBody = formData.text.trim()
+        const firstLine = trimmedBody.split('\n')[0].trim()
+        
+        if (formData.type === 'bill') {
+          // Bills must start with SECTION 1.
+          if (!/^section\s+1\./i.test(firstLine)) {
+            warning = "Your bill must start with 'SECTION 1.' Do not include any content before the first section."
+            console.log('[DEBUG] Bill does not start with SECTION 1, warning set.');
+          }
+        } else if (formData.type === 'resolution') {
+          // Resolutions must start with WHEREAS,
+          if (!/^whereas,/i.test(firstLine)) {
+            warning = "Your resolution must start with 'WHEREAS,' Do not include any content before the first WHEREAS clause."
+            console.log('[DEBUG] Resolution does not start with WHEREAS, warning set.');
+          }
+        } else if (formData.type === 'amendment') {
+          // Amendments must start with RESOLVED,
+          if (!/^resolved,/i.test(firstLine)) {
+            warning = "Your amendment must start with 'RESOLVED,' Do not include any content before the RESOLVED clause."
+            console.log('[DEBUG] Amendment does not start with RESOLVED, warning set.');
           }
         }
       }
@@ -806,9 +833,10 @@ export default function LegislationCheckerPage() {
                     <Label htmlFor="text" className="text-gray-700 font-medium">
                       Legislation Body Text
                     </Label>
+                    
                     <Textarea
                       id="text"
-                      placeholder="Paste or type ONLY the body of your legislation here. Do not include the title or your name."
+                      placeholder={`Paste or type ONLY the body of your legislation here. ${formData.type === 'bill' ? 'Start with SECTION 1.' : formData.type === 'resolution' ? 'Start with WHEREAS,' : 'Start with RESOLVED,'} Do not include the title, your name, or any content before the first section/clause.`}
                       className="min-h-[300px] border-gray-300 focus:border-red-500 focus:ring-red-500 resize-none"
                       value={formData.text}
                       onChange={(e) => setFormData({ ...formData, text: e.target.value })}
