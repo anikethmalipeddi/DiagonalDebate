@@ -949,9 +949,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       number: reqBody.number,
       title,
       content: reqBody.content,
-      submittedBy: user.name || user.email,
+      submittedBy: user.email, // Always use email for CC
       submittedAt: new Date(),
-      
+      // Optionally, you can add userName: user.name if you want to include it in the email body
     });
 
     return NextResponse.json({ 

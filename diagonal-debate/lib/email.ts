@@ -59,13 +59,10 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       throw new Error('CAPTAIN_EMAILS environment variable is not set')
     }
     
-    // If submittedBy looks like an email, add to cc
-    const ccList = /.+@.+\..+/.test(legislationData.submittedBy) ? legislationData.submittedBy : undefined;
-    
+    // Remove CC from the main email to captains
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: captainEmails,
-      cc: ccList,
       subject: `New ${legislationData.type.toUpperCase()} Submitted by ${legislationData.submittedBy}: ${legislationData.category.charAt(0).toUpperCase() + legislationData.category.slice(1).toLowerCase()} ${legislationData.number}`,
       html: `
         <div style="font-family: Arial, sans-serif; color: #222;">
@@ -96,15 +93,15 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       ]
     }
 
-    console.log('Attempting to send email to captains:', captainEmails, 'cc:', ccList)
+    console.log('Attempting to send email to captains:', captainEmails)
     const result = await transporter.sendMail(mailOptions)
     console.log('Email sent successfully to captains:', result.messageId)
     
-    // Also send confirmation email to the user if they provided an email
-    if (ccList) {
+    // Always send confirmation email to the user if their email is present
+    if (legislationData.submittedBy && /.+@.+\..+/.test(legislationData.submittedBy)) {
       const userMailOptions = {
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to: ccList,
+        to: legislationData.submittedBy,
         subject: `Your ${legislationData.type.toUpperCase()} has been submitted: ${legislationData.title}`,
         html: `
           <div style="font-family: Arial, sans-serif; color: #222;">
