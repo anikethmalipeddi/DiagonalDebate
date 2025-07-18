@@ -4,6 +4,7 @@ import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/sonner"
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "DiagonalDebate - Congressional Debate Legislation Assistant",
@@ -39,6 +40,7 @@ export default function RootLayout({
         <main className="flex-grow bg-white">{children}</main>
         <Footer />
         <Toaster />
+        <Analytics />
       </body>
     </html>
   )
