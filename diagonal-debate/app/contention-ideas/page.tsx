@@ -493,7 +493,7 @@ export default function ContentionIdeasPage() {
                       return (
                         <ScrollAnimation key={idea.id} direction="up" delay={index * 50}>
                           <Link href={`/contention-ideas/${slugify(idea.title)}`} className="block group h-full" tabIndex={0} aria-label={`Go to AI argument creator for ${idea.title}`}> 
-                            <Card className="hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 border-gray-200 h-full group bg-white cursor-pointer focus:ring-2 focus:ring-red-500 flex flex-col">
+                            <Card className="hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 border-gray-200 h-full group bg-white cursor-pointer focus:ring-2 focus:ring-red-500 flex flex-col min-h-[420px]">
                               <CardHeader className="pb-4 flex flex-col">
                                 <div className="flex justify-between items-start mb-3">
                                   <div className="flex items-center space-x-3">
@@ -610,14 +610,15 @@ export default function ContentionIdeasPage() {
           <TabsContent value="ai" className="transition-all duration-300 data-[state=active]:translate-x-0 data-[state=active]:opacity-100 data-[state=inactive]:translate-x-8 data-[state=inactive]:opacity-0">
             <ScrollAnimation direction="up" delay={200}>
               <Card className="relative shadow-xl border-0 bg-white/80 backdrop-blur-lg overflow-visible">
-                {loading && (
-                  <div className="absolute -top-1 left-0 w-full z-20 overflow-hidden">
+                {/* Always render the progress bar container, even if not loading */}
+                <div className="absolute -top-1 left-0 w-full z-20 overflow-hidden" style={{ minHeight: '4px' }}>
+                  {loading && (
                     <div
                       className="h-1 bg-gradient-to-r from-red-600 to-red-400 rounded-t-lg transition-all duration-200"
                       style={{ width: `${progress}%` }}
                     />
-                  </div>
-                )}
+                  )}
+                </div>
                 <CardHeader className="pb-6">
                   <div className="flex items-center space-x-3 mb-2">
                     <div className="bg-red-100 w-12 h-12 rounded-xl flex items-center justify-center">
@@ -744,75 +745,83 @@ export default function ContentionIdeasPage() {
                       )}
                     </Button>
                   </form>
-                  {/* AI Results */}
-                  {aiContentions && (
-                    <ScrollAnimation direction="up" delay={100} className="mt-8">
-                      <div className="border-t border-gray-200 pt-8">
-                        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                          <div className="bg-red-100 w-8 h-8 rounded-lg flex items-center justify-center mr-3">
-                            <Sparkles className="h-4 w-4 text-red-600" />
-                          </div>
-                          AI-Generated Contentions
-                        </h3>
-                        {Array.isArray(aiContentions) && aiContentions.length > 0 && (
-                          <div className="space-y-6">
-                            {aiContentions.map((c, i) =>
-                              typeof c === 'object' && c !== null ? (
-                                <div
-                                  key={i}
-                                  className="w-full bg-gradient-to-r from-gray-50 to-red-50/30 border border-gray-200 rounded-2xl p-8 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02] relative"
-                                  style={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.04)', maxWidth: '100%' }}
-                                >
-                                  <div className="flex flex-row items-center gap-3 mb-4">
-                                    <div className="bg-gradient-to-r from-red-600 to-red-700 text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-base">
+                  {/* AI Results - reserve space for results or loading */}
+                  <div style={{ minHeight: '420px' }}>
+                    {loading && !aiContentions && (
+                      <div className="flex flex-col items-center justify-center h-full w-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mb-4" />
+                        <p className="text-gray-500">Generating contentions...</p>
+                      </div>
+                    )}
+                    {aiContentions && (
+                      <ScrollAnimation direction="up" delay={100} className="mt-8">
+                        <div className="border-t border-gray-200 pt-8">
+                          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                            <div className="bg-red-100 w-8 h-8 rounded-lg flex items-center justify-center mr-3">
+                              <Sparkles className="h-4 w-4 text-red-600" />
+                            </div>
+                            AI-Generated Contentions
+                          </h3>
+                          {Array.isArray(aiContentions) && aiContentions.length > 0 && (
+                            <div className="space-y-6">
+                              {aiContentions.map((c, i) =>
+                                typeof c === 'object' && c !== null ? (
+                                  <div
+                                    key={i}
+                                    className="w-full bg-gradient-to-r from-gray-50 to-red-50/30 border border-gray-200 rounded-2xl p-8 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02] relative"
+                                    style={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.04)', maxWidth: '100%' }}
+                                  >
+                                    <div className="flex flex-row items-center gap-3 mb-4">
+                                      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-base">
+                                        {i + 1}
+                                      </div>
+                                      <span className="text-red-700 font-semibold text-lg leading-none">Contention {i + 1}</span>
+                                      <button
+                                        className="ml-2 p-2 rounded-full hover:bg-red-100 transition-colors"
+                                        aria-label="Regenerate contention"
+                                        onClick={() => handleRegenerateContention(i)}
+                                        disabled={regeneratingIndex === i}
+                                        type="button"
+                                      >
+                                        {regeneratingIndex === i ? null : <RefreshCw className="w-5 h-5 text-red-600" />}
+                                      </button>
+                                    </div>
+                                    {regeneratingIndex === i && (
+                                      <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-20 rounded-2xl">
+                                        <span className="inline-block animate-spin"><RefreshCw className="w-8 h-8 text-red-600" /></span>
+                                      </div>
+                                    )}
+                                    <div className="text-2xl font-semibold text-gray-900 mb-4 leading-snug" style={{lineHeight: '1.3'}}>
+                                      {c.contention}
+                                    </div>
+                                    <div className="border-b border-gray-200 mb-4" />
+                                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mb-2">
+                                      <dt className="text-sm font-semibold text-gray-500 pr-2 min-w-[72px]">Link:</dt>
+                                      <dd className="text-base bg-gray-50 rounded px-3 py-1 border-l-2 border-gray-200 mb-2">{c.link}</dd>
+                                      <dt className="text-sm font-semibold text-gray-500 pr-2 min-w-[72px]">Warrant:</dt>
+                                      <dd className="text-base bg-gray-50 rounded px-3 py-1 border-l-2 border-gray-200 mb-2">{c.warrant}</dd>
+                                      <dt className="text-sm font-semibold text-gray-500 pr-2 min-w-[72px]">Impact:</dt>
+                                      <dd className="text-base bg-red-50 rounded px-3 py-1 border-l-2 border-red-300 mb-2 text-red-600">{c.impact}</dd>
+                                    </dl>
+                                  </div>
+                                ) : (
+                                  <div
+                                    key={i}
+                                    className="flex items-start space-x-3 p-4 rounded-lg bg-gradient-to-r from-gray-50 to-red-50/30 border border-gray-200"
+                                  >
+                                    <div className="bg-gradient-to-r from-red-600 to-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5">
                                       {i + 1}
                                     </div>
-                                    <span className="text-red-700 font-semibold text-lg leading-none">Contention {i + 1}</span>
-                                    <button
-                                      className="ml-2 p-2 rounded-full hover:bg-red-100 transition-colors"
-                                      aria-label="Regenerate contention"
-                                      onClick={() => handleRegenerateContention(i)}
-                                      disabled={regeneratingIndex === i}
-                                      type="button"
-                                    >
-                                      {regeneratingIndex === i ? null : <RefreshCw className="w-5 h-5 text-red-600" />}
-                                    </button>
+                                    <p className="text-gray-800 leading-relaxed">{c}</p>
                                   </div>
-                                  {regeneratingIndex === i && (
-                                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-20 rounded-2xl">
-                                      <span className="inline-block animate-spin"><RefreshCw className="w-8 h-8 text-red-600" /></span>
-                                    </div>
-                                  )}
-                                  <div className="text-2xl font-semibold text-gray-900 mb-4 leading-snug" style={{lineHeight: '1.3'}}>
-                                    {c.contention}
-                                  </div>
-                                  <div className="border-b border-gray-200 mb-4" />
-                                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mb-2">
-                                    <dt className="text-sm font-semibold text-gray-500 pr-2 min-w-[72px]">Link:</dt>
-                                    <dd className="text-base bg-gray-50 rounded px-3 py-1 border-l-2 border-gray-200 mb-2">{c.link}</dd>
-                                    <dt className="text-sm font-semibold text-gray-500 pr-2 min-w-[72px]">Warrant:</dt>
-                                    <dd className="text-base bg-gray-50 rounded px-3 py-1 border-l-2 border-gray-200 mb-2">{c.warrant}</dd>
-                                    <dt className="text-sm font-semibold text-gray-500 pr-2 min-w-[72px]">Impact:</dt>
-                                    <dd className="text-base bg-red-50 rounded px-3 py-1 border-l-2 border-red-300 mb-2 text-red-600">{c.impact}</dd>
-                                  </dl>
-                                </div>
-                              ) : (
-                                <div
-                                  key={i}
-                                  className="flex items-start space-x-3 p-4 rounded-lg bg-gradient-to-r from-gray-50 to-red-50/30 border border-gray-200"
-                                >
-                                  <div className="bg-gradient-to-r from-red-600 to-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5">
-                                    {i + 1}
-                                  </div>
-                                  <p className="text-gray-800 leading-relaxed">{c}</p>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </ScrollAnimation>
-                  )}
+                                )
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </ScrollAnimation>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </ScrollAnimation>
