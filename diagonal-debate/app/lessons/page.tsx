@@ -914,7 +914,7 @@ export default function LessonsPage() {
                 const CategoryIcon = getCategoryIcon(lesson.category)
                 return (
                   <ScrollAnimation key={lesson.id} direction="up" delay={index * 50}>
-                    <Card className="flex flex-col h-full min-w-[320px] max-w-[370px] bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 group min-h-[340px]">
+                    <Card className="flex flex-col h-full min-w-[320px] max-w-[370px] bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 group">
                       <CardHeader className="pb-2 pt-5 px-6">
                         <div className="flex justify-between items-start mb-2">
                           <div className="bg-red-100 p-3 rounded-xl group-hover:bg-red-200 transition-colors">
@@ -934,8 +934,8 @@ export default function LessonsPage() {
                           {lesson.description}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="min-h-[180px] flex flex-col justify-between px-4 pb-4 pt-0">
-                        {/* Stats Row with placeholders */}
+                      <CardContent className="min-h-[140px] flex flex-col justify-between px-4 pb-4 pt-0">
+                        {/* Stats Row */}
                         <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
                           <div className="flex items-center space-x-1">
                             <Clock className="w-4 h-4" />
@@ -944,17 +944,18 @@ export default function LessonsPage() {
                           <div className="flex items-center space-x-1">
                             <Users className="w-4 h-4" />
                             <span>
-                              {enrolledLessons[lesson.fileName] !== undefined
-                                ? `${enrolledLessons[lesson.fileName]} enrolled`
-                                : <span className="inline-block w-12 h-4 bg-gray-200 rounded animate-pulse" />}
+                              {enrolledLessons[lesson.fileName] !== undefined 
+                                ? `${enrolledLessons[lesson.fileName]} enrolled` 
+                                : '— enrolled'}
+                              {/* Debug: {JSON.stringify(enrolledLessons[lesson.fileName])} */}
                             </span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
                             <span>
                               {averageRatings[lesson.fileName] !== null && averageRatings[lesson.fileName] !== undefined
-                                ? `${averageRatings[lesson.fileName]!.toFixed(1)} (${ratingCounts[lesson.fileName] || 0})`
-                                : <span className="inline-block w-10 h-4 bg-gray-200 rounded animate-pulse" />}
+                                ? `${averageRatings[lesson.fileName]!.toFixed(1)} (${ratingCounts[lesson.fileName] || 0})` 
+                                : '—'}
                             </span>
                           </div>
                         </div>
@@ -1024,7 +1025,7 @@ export default function LessonsPage() {
           {/* Preview/Info */}
           <div className="w-full flex flex-col items-center justify-center px-6 pb-4">
             {/* PDF first page thumbnail */}
-            <div className="w-[400px] h-[180px] bg-gray-100 rounded-lg flex items-center justify-center mb-4 border border-gray-200 overflow-hidden min-h-[180px] min-w-[400px]">
+            <div className="w-[400px] h-[180px] bg-gray-100 rounded-lg flex items-center justify-center mb-4 border border-gray-200 overflow-hidden">
               {selectedLesson
                 ? <PDFPreview file={selectedLesson.pdfUrl} />
                 : <div className="animate-pulse w-full h-full bg-gray-200" />}
