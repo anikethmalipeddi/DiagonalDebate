@@ -31,6 +31,15 @@ export default function AuthPage() {
     confirmPassword: "",
   })
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [nameError, setNameError] = useState("")
+
+  // Helper to validate name: must be two words, both capitalized
+  function validateName(name: string) {
+    const parts = name.trim().split(" ")
+    if (parts.length < 2) return "Please enter both your first and last name."
+    if (!parts.every(p => /^[A-Z][a-zA-Z]+$/.test(p))) return "Both first and last name must start with a capital letter and contain only letters."
+    return ""
+  }
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
@@ -63,16 +72,19 @@ export default function AuthPage() {
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault()
+    const nameValidation = validateName(registerData.name)
+    if (nameValidation) {
+      setNameError(nameValidation)
+      return
+    } else {
+      setNameError("")
+    }
     if (registerData.password !== registerData.confirmPassword) {
       toast.error("Passwords do not match")
       return
     }
     if (!agreedToTerms) {
       toast.error("You must agree to the Terms of Service and Privacy Policy")
-      return
-    }
-    if (!registerData.name.trim().includes(' ') || registerData.name.trim().split(' ').length < 2) {
-      toast.error("Please enter both your first and last name.")
       return
     }
     setIsLoading(true)
@@ -112,6 +124,9 @@ export default function AuthPage() {
         setLoginData(prev => ({...prev, [name]: value}))
     } else {
         setRegisterData(prev => ({...prev, [name]: value}))
+        if (name === "name") {
+          setNameError(validateName(value))
+        }
     }
   }
 
@@ -164,22 +179,31 @@ export default function AuthPage() {
                 </Button>
               </form>
             </TabsContent>
-            <TabsContent value="register" className="space-y-6 pt-6">
-              <form onSubmit={handleRegister} className="space-y-6">
+            <TabsContent value="register" className="space-y-4 pt-6">
+              <form onSubmit={handleRegister} className="space-y-4">
                 
                 {/* Name Input */}
-                <div className="space-y-1">
+                <div>
                     <Label htmlFor="register-name">First and Last Name</Label>
-                    <div className="relative">
+                    <div className="relative mt-1">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <UserIcon className="h-5 w-5 text-gray-400" />
                         </div>
-                        <Input id="register-name" name="name" type="text" placeholder="e.g. John Doe" className="pl-10" value={registerData.name} onChange={e => handleInputChange(e, 'register')} disabled={isLoading} required />
+                        <Input id="register-name" name="name" type="text" placeholder="e.g. John Doe" className="pl-10" value={registerData.name} onChange={e => handleInputChange(e, 'register')} disabled={isLoading} required aria-describedby="register-name-error" />
                     </div>
+
+                    {nameError && (
+                      <p
+                        id="register-name-error"
+                        className="text-xs text-red-600 mt-2 mb-0"
+                      >
+                        {nameError}
+                      </p>
+                    )}
                 </div>
 
                 {/* Email Input */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                     <Label htmlFor="register-email">Email</Label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -190,7 +214,7 @@ export default function AuthPage() {
                 </div>
 
                 {/* Password Input */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                     <Label htmlFor="register-password">Password</Label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -201,7 +225,7 @@ export default function AuthPage() {
                 </div>
 
                 {/* Confirm Password Input */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                     <Label htmlFor="register-confirmPassword">Confirm Password</Label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
