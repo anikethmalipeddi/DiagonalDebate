@@ -26,6 +26,14 @@ function LessonViewerPageInner() {
     if (hasVisited) {
       setIsFirstVisit(false);
     }
+    // Mark lesson as viewed for Lessons page
+    if (lessonFileName) {
+      try {
+        localStorage.setItem(`viewed:${lessonFileName}`, '1');
+      } catch (e) {
+        // ignore
+      }
+    }
   }, [lessonFileName]);
 
   const handleExitLesson = () => {

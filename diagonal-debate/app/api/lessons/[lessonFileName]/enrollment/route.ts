@@ -3,12 +3,15 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 
 // GET: fetch total enrolled and if user is enrolled
-export async function GET(req: NextRequest, context: { params: { lessonFileName: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ lessonFileName: string }> }
+) {
   try {
-    const { params } = await context;
-  const user = await getCurrentUser();
-  const userId = user?.id;
-  const lessonFileName = decodeURIComponent(params.lessonFileName);
+    const { lessonFileName: rawFileName } = await params;
+    const lessonFileName = decodeURIComponent(rawFileName);
+    const user = await getCurrentUser();
+    const userId = user?.id;
 
   // Count total enrollments for this lesson
   const total = await prisma.lessonEnrollment.count({ where: { lessonFileName } });

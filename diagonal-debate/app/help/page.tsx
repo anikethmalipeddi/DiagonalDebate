@@ -266,10 +266,10 @@ export default function HelpPage() {
             <a href="/contact#suggestion">
               <Button
                 size="lg"
-                className="bg-white text-red-600 hover:bg-gray-100 px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group"
+                className="bg-red-600 text-white hover:bg-red-700 px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group"
               >
-                Contact Us
-                <Mail className="ml-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+                <span className="text-white">Contact Us</span>
+                <Mail className="ml-2 h-5 w-5 text-white group-hover:scale-110 transition-transform" />
               </Button>
             </a>
             <a href="/lessons">

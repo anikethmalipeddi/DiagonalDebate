@@ -23,7 +23,8 @@ interface Lesson {
   duration: string
   difficulty: string
   category: string
-  rating: number
+  rating: number // average rating placeholder
+  ratingCount: number // placeholder count of raters
   enrolled: number
   topics: string[]
   content: string
@@ -93,8 +94,9 @@ const generateLessonsFromFiles = (): Lesson[] => {
         duration: "60 min",
         difficulty: "Beginner",
         category: "Speaking",
-        rating: 4.9,
-        enrolled: 156,
+  rating: 4.9,
+  ratingCount: 24,
+  enrolled: 156,
         topics: ["Basics", "Structure", "Procedures"],
         content: "This foundational lesson covers the core concepts of congressional debate, including chamber procedures, speaking order, and basic argumentation techniques.",
         objectives: [
@@ -115,8 +117,9 @@ const generateLessonsFromFiles = (): Lesson[] => {
         duration: "75 min",
         difficulty: "Intermediate",
         category: "Writing",
-        rating: 4.8,
-        enrolled: 134,
+  rating: 4.8,
+  ratingCount: 22,
+  enrolled: 134,
         topics: ["Legislation", "Writing", "Analysis"],
         content: "Learn the NSDA standards for bill writing, including proper formatting, effective policy proposals, and how to analyze legislation for debate.",
         objectives: [
@@ -137,8 +140,9 @@ const generateLessonsFromFiles = (): Lesson[] => {
         duration: "90 min",
         difficulty: "Advanced",
         category: "Speaking",
-        rating: 4.7,
-        enrolled: 98,
+  rating: 4.7,
+  ratingCount: 21,
+  enrolled: 98,
         topics: ["Argumentation", "Refutation", "Strategy"],
         content: "Advanced techniques for constructing compelling arguments, effective refutation, and strategic debate positioning.",
         objectives: [
@@ -280,6 +284,12 @@ const generateLessonsFromFiles = (): Lesson[] => {
     // Generate more specific descriptions based on content
     const description = generateDescription(title, category, difficulty)
     
+    // Placeholder enrollment: 50-80, placeholder ratings: 4.5-5.0, raters: 20-30
+    const placeholderEnrolled = 50 + (index % 31) // yields 50-80
+    let placeholderRating = 4.5 + ((index % 6) * 0.1)
+    if (placeholderRating > 5) placeholderRating = 5
+    const placeholderRatingCount = 20 + (index % 11) // yields 20-30
+
     return {
       id: index + 1,
       title: title,
@@ -287,8 +297,9 @@ const generateLessonsFromFiles = (): Lesson[] => {
       duration: generateDuration(fileName),
       difficulty: difficulty,
       category: category,
-      rating: 4.5 + (Math.random() * 0.5), // Random rating between 4.5-5.0
-      enrolled: 100 + Math.floor(Math.random() * 100),
+      rating: Number(placeholderRating.toFixed(1)),
+      ratingCount: placeholderRatingCount,
+      enrolled: placeholderEnrolled,
       topics: generateTopics(category),
       content: `This comprehensive lesson provides in-depth coverage of ${title.toLowerCase()} with practical examples, exercises, and real-world applications for congressional debate.`,
       objectives: lessonObjectives[title] || generateObjectives(category),
@@ -495,12 +506,10 @@ export default function LessonsPage() {
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [selectedDifficulty, setSelectedDifficulty] = useState("All")
   const [selectedPhase, setSelectedPhase] = useState("All")
-  const [enrolledLessons, setEnrolledLessons] = useState<{ [fileName: string]: number }>({})
-  const [userEnrollments, setUserEnrollments] = useState<{ [fileName: string]: boolean }>({})
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
-  const [userRatings, setUserRatings] = useState<{ [fileName: string]: number }>({})
-  const [averageRatings, setAverageRatings] = useState<{ [fileName: string]: number | null }>({})
-  const [ratingCounts, setRatingCounts] = useState<{ [fileName: string]: number }>({})
+  // Use placeholders on the lesson objects for enrolled and ratingCount.
+  // Track whether the user viewed a lesson at least once via localStorage.
+  const [viewedLessons, setViewedLessons] = useState<{ [fileName: string]: boolean }>({})
+  // Ratings are represented on each lesson as lesson.rating and lesson.ratingCount placeholders
   const [ratingSubmitting, setRatingSubmitting] = useState(false)
   const [showRatingModal, setShowRatingModal] = useState(false)
   const [ratingLesson, setRatingLesson] = useState<string | null>(null)
@@ -512,130 +521,31 @@ export default function LessonsPage() {
   // Load lessons on component mount
   useEffect(() => {
     const generatedLessons = generateLessonsFromFiles()
-    setLessons(generatedLessons)
+  // Use hardset placeholder ratings (shared across users). No local persistence.
+  setLessons(generatedLessons)
   }, [])
 
-  // Check for rating modal flag on mount
+  // Check for rating modal flag on mount (no server calls)
   useEffect(() => {
     const showRatingFlag = localStorage.getItem('showRatingModal');
-    if (showRatingFlag && isLoggedIn) {
-      // Check if the user has already rated this lesson
-      fetch(`/api/lessons/${encodeURIComponent(showRatingFlag)}/rating`)
-        .then(res => res.json())
-        .then(data => {
-          if (!data.userRating || data.userRating === 0) {
-            setRatingLesson(showRatingFlag);
-            setTimeout(() => setShowRatingModal(true), 500);
-          }
-          localStorage.removeItem('showRatingModal');
-        });
+    if (showRatingFlag) {
+      // Open the rating modal for the lesson (we no longer fetch per-user ratings)
+      setRatingLesson(showRatingFlag);
+      setTimeout(() => setShowRatingModal(true), 500);
+      localStorage.removeItem('showRatingModal');
     }
-  }, [isLoggedIn]);
-
-  // Check user authentication status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        const data = await res.json();
-        setIsLoggedIn(!!data.user);
-        console.log('Auth check result:', data);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        setIsLoggedIn(false);
-      }
-    };
-    checkAuth();
   }, []);
 
-  // Fetch enrollments for all lessons on mount
+  // No remote auth checks here; we operate purely on local placeholder state for lessons/ratings.
+  // Initialize viewedLessons from localStorage
   useEffect(() => {
-    const fetchEnrollments = async () => {
-      try {
-      const generatedLessons = generateLessonsFromFiles();
-      const results = await Promise.all(
-        generatedLessons.map(async (lesson) => {
-            try {
-          const res = await fetch(`/api/lessons/${encodeURIComponent(lesson.fileName)}/enrollment`);
-              if (!res.ok) {
-                console.error(`Enrollment fetch failed for ${lesson.fileName}:`, res.status);
-                return { total: 0, isEnrolled: false };
-              }
-              const data = await res.json();
-              console.log(`Enrollment data for ${lesson.fileName}:`, data);
-              return data;
-            } catch (error) {
-              console.error(`Error fetching enrollment for ${lesson.fileName}:`, error);
-              return { total: 0, isEnrolled: false };
-            }
-        })
-      );
-      const enrolledMap: { [fileName: string]: number } = {};
-      const userMap: { [fileName: string]: boolean } = {};
-      generatedLessons.forEach((lesson, i) => {
-        enrolledMap[lesson.fileName] = results[i].total;
-        userMap[lesson.fileName] = results[i].isEnrolled;
-      });
-        console.log('Final enrollment maps:', { enrolledMap, userMap });
-      setEnrolledLessons(enrolledMap);
-      setUserEnrollments(userMap);
-      } catch (error) {
-        console.error('Error in fetchEnrollments:', error);
-      }
-    };
-    fetchEnrollments();
-  }, []);
-
-  // Function to refresh enrollments (accessible from button handlers)
-  const refreshEnrollments = async () => {
     const generatedLessons = generateLessonsFromFiles();
-    const results = await Promise.all(
-      generatedLessons.map(async (lesson) => {
-        const res = await fetch(`/api/lessons/${encodeURIComponent(lesson.fileName)}/enrollment`);
-        if (!res.ok) return { total: 0, isEnrolled: false };
-        return res.json();
-      })
-    );
-    const enrolledMap: { [fileName: string]: number } = {};
-    const userMap: { [fileName: string]: boolean } = {};
-    generatedLessons.forEach((lesson, i) => {
-      enrolledMap[lesson.fileName] = results[i].total;
-      userMap[lesson.fileName] = results[i].isEnrolled;
+    const map: { [fileName: string]: boolean } = {};
+    generatedLessons.forEach(l => {
+      const key = `viewed:${l.fileName}`;
+      map[l.fileName] = !!localStorage.getItem(key);
     });
-    setEnrolledLessons(enrolledMap);
-    setUserEnrollments(userMap);
-  };
-
-  // Fetch ratings for all lessons on mount
-  useEffect(() => {
-    const fetchRatings = async () => {
-      const generatedLessons = generateLessonsFromFiles();
-      const results = await Promise.all(
-        generatedLessons.map(async (lesson) => {
-          const res = await fetch(`/api/lessons/${encodeURIComponent(lesson.fileName)}/rating`);
-          if (!res.ok) return { fileName: lesson.fileName, userRating: 0, averageRating: null, count: 0 };
-          const data = await res.json();
-          return {
-            fileName: lesson.fileName,
-            userRating: data.userRating || 0,
-            averageRating: data.averageRating,
-            count: data.count,
-          };
-        })
-      );
-      const userRatingsObj: { [fileName: string]: number } = {};
-      const averageRatingsObj: { [fileName: string]: number | null } = {};
-      const ratingCountsObj: { [fileName: string]: number } = {};
-      results.forEach(r => {
-        userRatingsObj[r.fileName] = r.userRating;
-        averageRatingsObj[r.fileName] = r.averageRating;
-        ratingCountsObj[r.fileName] = r.count;
-      });
-      setUserRatings(userRatingsObj);
-      setAverageRatings(averageRatingsObj);
-      setRatingCounts(ratingCountsObj);
-    };
-    fetchRatings();
+    setViewedLessons(map);
   }, []);
 
   // Global security measures
@@ -681,65 +591,28 @@ export default function LessonsPage() {
     }
   }
 
-  // Fetch login state when PDF dialog opens
-  useEffect(() => {
-    if (showPdf) {
-      fetch('/api/auth/me')
-        .then(res => res.json())
-        .then(data => setIsLoggedIn(!!data.user))
-        .catch(() => setIsLoggedIn(false));
-    }
-  }, [showPdf]);
+  // No remote auth checks when opening the PDF preview.
 
-  // Handle rating submission per lesson
-  const handleRateLesson = async (value: number) => {
+  // Handle quick rating (star click) by updating local placeholder data
+  // Quick-rate handler: do not change shared/hardset ratings; simulate submit briefly.
+  const handleRateLesson = (value: number) => {
     if (!selectedLesson) return;
     setRatingSubmitting(true);
-    await fetch(`/api/lessons/${encodeURIComponent(selectedLesson.fileName)}/rating`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rating: value }),
-    });
-    // Refetch rating for this lesson
-    const res = await fetch(`/api/lessons/${encodeURIComponent(selectedLesson.fileName)}/rating`);
-    if (res.ok) {
-      const data = await res.json();
-      setUserRatings(prev => ({ ...prev, [selectedLesson.fileName]: data.userRating || 0 }));
-      setAverageRatings(prev => ({ ...prev, [selectedLesson.fileName]: data.averageRating }));
-      setRatingCounts(prev => ({ ...prev, [selectedLesson.fileName]: data.count }));
-    }
-    setRatingSubmitting(false);
+    // No-op changing lesson data — ratings remain hardset/shared
+    setTimeout(() => setRatingSubmitting(false), 300);
   }
 
-  const handleSubmitRating = async () => {
+  // Submit rating from modal: do not mutate shared/hardset ratings; just close modal.
+  const handleSubmitRating = () => {
     if (rating === 0 || !ratingLesson) return;
-    
     setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/lessons/${encodeURIComponent(ratingLesson)}/rating`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ rating, feedback }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Update the lesson's rating data
-        setAverageRatings(prev => ({ ...prev, [ratingLesson]: data.averageRating }));
-        setRatingCounts(prev => ({ ...prev, [ratingLesson]: data.count }));
-        // Close modal
-        setShowRatingModal(false);
-        setRatingLesson(null);
-        setRating(0);
-        setFeedback("");
-      }
-    } catch (error) {
-      console.error('Failed to submit rating:', error);
-    } finally {
+    setTimeout(() => {
+      setShowRatingModal(false);
+      setRatingLesson(null);
+      setRating(0);
+      setFeedback("");
       setIsSubmitting(false);
-    }
+    }, 400);
   };
 
   const handleSkipRating = () => {
@@ -789,23 +662,8 @@ export default function LessonsPage() {
     return matchesSearch && matchesCategory && matchesDifficulty && matchesPhase
   })
 
-  // Add useEffect to check for a flag in localStorage after PDF viewer exit
-  useEffect(() => {
-    const completedLesson = localStorage.getItem('completedLesson');
-    if (completedLesson) {
-      // Enroll the user for this lesson
-      fetch(`/api/lessons/${encodeURIComponent(completedLesson)}/enrollment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-        .then(res => res.json())
-        .then(data => {
-          setUserEnrollments(prev => ({ ...prev, [completedLesson]: true }));
-          setEnrolledLessons(prev => ({ ...prev, [completedLesson]: data.total }));
-          localStorage.removeItem('completedLesson');
-        });
-    }
-  }, []);
+  // When the PDF viewer closes we set a localStorage flag for viewed lessons elsewhere in the viewer route.
+  // (The viewer route should set localStorage.setItem(`viewed:${fileName}`, '1') when a user opens a lesson.)
 
   return (
     <div className="bg-white min-h-screen">
@@ -848,7 +706,6 @@ export default function LessonsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-
             {/* Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
               <div className="flex items-center space-x-2">
@@ -944,17 +801,14 @@ export default function LessonsPage() {
                           <div className="flex items-center space-x-1">
                             <Users className="w-4 h-4" />
                             <span>
-                              {enrolledLessons[lesson.fileName] !== undefined 
-                                ? `${enrolledLessons[lesson.fileName]} enrolled` 
-                                : '— enrolled'}
-                              {/* Debug: {JSON.stringify(enrolledLessons[lesson.fileName])} */}
+                              {lesson.enrolled !== undefined ? `${lesson.enrolled} enrolled` : '— enrolled'}
                             </span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
                             <span>
-                              {averageRatings[lesson.fileName] !== null && averageRatings[lesson.fileName] !== undefined
-                                ? `${averageRatings[lesson.fileName]!.toFixed(1)} (${ratingCounts[lesson.fileName] || 0})` 
+                              {lesson.rating !== undefined && lesson.ratingCount !== undefined
+                                ? `${lesson.rating.toFixed(1)} (${lesson.ratingCount})`
                                 : '—'}
                             </span>
                           </div>
@@ -978,12 +832,15 @@ export default function LessonsPage() {
                             type="button"
                             onClick={() => {
                               setSelectedLesson(lesson);
+                              // mark viewed locally
+                              try { localStorage.setItem(`viewed:${lesson.fileName}`, '1'); } catch(e){}
+                              setViewedLessons(prev => ({ ...prev, [lesson.fileName]: true }));
                               setShowPdf(true);
                             }}
                           >
                             <Play className="w-4 h-4 mr-2" />
                             <span>
-                              {userEnrollments[lesson.fileName] ? "Revisit Lesson" : "Start Lesson"}
+                              {viewedLessons[lesson.fileName] ? "Revisit Lesson" : "Start Lesson"}
                             </span>
                           </Button>
                         </div>
@@ -1059,8 +916,10 @@ export default function LessonsPage() {
           {/* Action Button */}
           <div className="w-full flex justify-center pb-6">
             <button
-              onClick={async () => {
+                onClick={async () => {
                 if (selectedLesson) {
+                  try { localStorage.setItem(`viewed:${selectedLesson.fileName}`, '1'); } catch(e){}
+                  setViewedLessons(prev => ({ ...prev, [selectedLesson.fileName]: true }));
                   router.push(`/lessons/viewer?file=${encodeURIComponent(selectedLesson.pdfUrl)}`);
                   setShowPdf(false);
                 }
@@ -1068,7 +927,7 @@ export default function LessonsPage() {
               className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow transition-all focus:outline-none focus:ring-2 focus:ring-red-400 text-lg"
             >
               <span>
-                {selectedLesson && userEnrollments[selectedLesson.fileName] ? "Revisit Lesson" : "Open Lesson"}
+                {selectedLesson && viewedLessons[selectedLesson.fileName] ? "Revisit Lesson" : "Open Lesson"}
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>

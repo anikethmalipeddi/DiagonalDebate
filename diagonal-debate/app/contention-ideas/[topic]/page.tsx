@@ -77,10 +77,15 @@ export default function ContentionTopicPage() {
 
         {/* Tabs for Overview and AI Generator */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-8 bg-gray-100 p-1 rounded-lg flex gap-2">
-            <TabsTrigger value="overview">
-              <FileText className="w-4 h-4 mr-2" />
-              Topic Overview
+          <TabsList className="mb-8 bg-red-600 p-0 rounded-lg flex gap-0 justify-center overflow-hidden">
+            <TabsTrigger
+              value="overview"
+              className="!bg-red-600 !text-white !shadow-none w-full justify-center rounded-none px-6 py-4"
+            >
+              <div className="flex items-center justify-center gap-3 w-full">
+                <FileText className="w-5 h-5 text-white" />
+                <span className="text-lg font-semibold">Topic Overview</span>
+              </div>
             </TabsTrigger>
           </TabsList>
 
@@ -111,14 +116,18 @@ export default function ContentionTopicPage() {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="for" className="w-full">
-                    <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg">
+                    <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg flex justify-center gap-2">
                       <TabsTrigger value="for">
-                        <Target className="w-4 h-4 mr-2" />
-                        Arguments For
+                        <div className="flex items-center justify-center gap-3">
+                          <Target className="w-5 h-5" />
+                          <span className="text-base font-semibold">Arguments For</span>
+                        </div>
                       </TabsTrigger>
                       <TabsTrigger value="against">
-                        <Target className="w-4 h-4 mr-2" />
-                        Arguments Against
+                        <div className="flex items-center justify-center gap-3">
+                          <Target className="w-5 h-5" />
+                          <span className="text-base font-semibold">Arguments Against</span>
+                        </div>
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="for" className="mt-6">
