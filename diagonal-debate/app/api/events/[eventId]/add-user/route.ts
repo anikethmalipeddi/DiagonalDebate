@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
-
-const ADMIN_EMAILS = [
-  "aniketh.malipeddi@gmail.com",
-  "anikethmalipeddi@gmail.com"
-]
+import { isAdmin } from '@/lib/admin'
 
 export async function POST(
   request: NextRequest,
@@ -19,7 +15,7 @@ export async function POST(
     }
 
     // Check if user is admin
-    if (!ADMIN_EMAILS.includes(currentUser.email)) {
+    if (!isAdmin(currentUser.email)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 

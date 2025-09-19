@@ -457,7 +457,7 @@ export default function LegislationCheckerPage() {
     if (!isFormSubmittable) {
       console.log('Submission blocked by validation')
       toast.error("Cannot Submit", {
-        description: "Please fix all template errors and ensure overall score is above 75 before submitting to captains.",
+        description: "Please fix all template errors and ensure overall score is above 75 before submitting to admins.",
       })
       return
     }
@@ -538,7 +538,7 @@ export default function LegislationCheckerPage() {
       
       // Show success message
       toast.success("Successfully Submitted!", {
-        description: "Your legislation has been formatted as a PDF and emailed to your team captains for review.",
+        description: "Your legislation has been formatted as a PDF and emailed to your team admins for review.",
       })
       
       console.log('Resetting form...')
@@ -908,7 +908,7 @@ export default function LegislationCheckerPage() {
                                   ? bodyWarning
                                   : titleWarning
                                     ? titleWarning
-                                    : "Submit to your team captains"
+                                    : "Submit to your team admins"
                         }
                       >
                         <div className="flex items-center justify-center">
@@ -917,7 +917,7 @@ export default function LegislationCheckerPage() {
                           ) : (
                             <>
                               <Send className="w-5 h-5" />
-                              <span className="ml-2">Submit to Captains</span>
+                              <span className="ml-2">Submit to Admins</span>
                             </>
                           )}
                         </div>

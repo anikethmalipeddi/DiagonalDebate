@@ -19,7 +19,7 @@ export const features = [
     id: 3,
     icon: FileText,
     title: "Instant PDF Generation",
-    description: "Generate properly formatted PDFs and automatically email them to your debate captains.",
+    description: "Generate properly formatted PDFs and automatically email them to your team admins.",
     color: "text-red-600",
   },
   {
