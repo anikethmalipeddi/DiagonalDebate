@@ -65,10 +65,10 @@ function checkTemplateErrors(type: string, body: string, title?: string): string
     if (section5Match) {
       section5Text = section5Match[0];
       console.log('SECTION 5 text:', section5Text);
-      const datePattern = /(FY \d{4}|[A-Z][a-z]+ \d{1,2}, \d{4})/i;
+      const datePattern = /(FY \d{4}|Fiscal Year \d{4}|[A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)?, \d{4})/i;
       const immediatePattern = /IMMEDIATELY UPON ITS PASSAGE/i;
       if (!datePattern.test(section5Text) && !immediatePattern.test(section5Text)) {
-        errors.push('SECTION 5 must include a date (e.g., "FY 2021" or "July 1, 2021") or the phrase "immediately upon its passage".');
+        errors.push('SECTION 5 must include a date (e.g., "FY 2024", "Fiscal Year 2024", "July 1, 2024", or "July 1st, 2024") or the phrase "immediately upon its passage".');
       }
     } else {
       errors.push('Missing SECTION 5 content.');
