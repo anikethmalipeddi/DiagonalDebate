@@ -21,11 +21,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
     if (event.tournamentType === 'Championship') {
-      const adminEmails = [
-        'aniketh.malipeddi@gmail.com',
-        'anikethmalipeddi@gmail.com'
-      ]
-      if (!adminEmails.includes(user.email)) {
+      const { isAdmin } = await import('@/lib/admin')
+      if (!isAdmin(user.email)) {
         return NextResponse.json({ error: 'Invite only: Only admins can add users to this event.' }, { status: 403 })
       }
     }

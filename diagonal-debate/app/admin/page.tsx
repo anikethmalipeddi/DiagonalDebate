@@ -15,11 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
-
-const ADMIN_EMAILS = [
-  "aniketh.malipeddi@gmail.com",
-  "anikethmalipeddi@gmail.com"
-]
+import { ADMIN_EMAILS } from "@/lib/admin"
 
 const lessonFiles: string[] = [
   "general-overview-schedule-wacfl-1.pdf",

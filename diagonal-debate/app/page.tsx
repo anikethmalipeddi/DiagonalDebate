@@ -30,7 +30,7 @@ const features = [
     id: "pdf-generation",
     icon: FileText,
     title: "Instant PDF Generation",
-    description: "Generate properly formatted PDFs and automatically email them to your debate captains.",
+    description: "Generate properly formatted PDFs and automatically email them to your team admins.",
     color: "text-red-600",
     glowColor: "hover:shadow-red-500/25",
   },

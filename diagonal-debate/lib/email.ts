@@ -1,12 +1,13 @@
 import nodemailer from 'nodemailer'
 import { prisma } from './prisma'
+import { getAdminEmailsString } from './admin'
 
 // Debug environment variables
 console.log('SMTP Debug Info:')
 console.log('SMTP_HOST:', process.env.SMTP_HOST ? 'Set' : 'Not set')
 console.log('SMTP_USER:', process.env.SMTP_USER ? 'Set' : 'Not set')
 console.log('SMTP_PASSTWO:', process.env.SMTP_PASSTWO ? 'Set' : 'Not set')
-console.log('CAPTAIN_EMAILS:', process.env.CAPTAIN_EMAILS ? 'Set' : 'Not set')
+console.log('ADMIN_EMAILS (used as captains):', getAdminEmailsString())
 
 // Email configuration with better error handling
 const transporter = nodemailer.createTransport({
@@ -53,11 +54,8 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       throw new Error('SMTP_USER or SMTP_PASSTWO environment variables are not set')
     }
     
-    // Use CAPTAIN_EMAILS environment variable
-    const captainEmails = process.env.CAPTAIN_EMAILS
-    if (!captainEmails) {
-      throw new Error('CAPTAIN_EMAILS environment variable is not set')
-    }
+    // Use admin emails as captains (no longer need CAPTAIN_EMAILS env var)
+    const captainEmails = getAdminEmailsString()
     
     // Remove CC from the main email to captains
     const mailOptions = {
@@ -93,9 +91,9 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       ]
     }
 
-    console.log('Attempting to send email to captains:', captainEmails)
+    console.log('Attempting to send email to admins/captains:', captainEmails)
     const result = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully to captains:', result.messageId)
+    console.log('Email sent successfully to admins/captains:', result.messageId)
     
     // Always send confirmation email to the user if their email is present
     if (legislationData.submittedBy && /.+@.+\..+/.test(legislationData.submittedBy)) {
@@ -115,8 +113,8 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
               <tr><td style="font-weight: bold;">Title:</td><td>${legislationData.title}</td></tr>
               <tr><td style="font-weight: bold;">Submitted at:</td><td>${legislationData.submittedAt.toLocaleString()}</td></tr>
             </table>
-            <p>Your legislation has been reviewed by our platform and passed initial checks. It has been forwarded to the team captains for final review.</p>
-            <p>You will be notified once the captains have reviewed your submission.</p>
+            <p>Your legislation has been reviewed by our platform and passed initial checks. It has been forwarded to the team admins for final review.</p>
+            <p>You will be notified once the admins have reviewed your submission.</p>
             <p style="font-size: 0.95em; color: #555;">Thank you for using DiagonalDebate!</p>
           </div>
         `,
@@ -153,16 +151,17 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
 
 export async function sendEmail(subject: string, text: string, html?: string, attachments?: any[]) {
   try {
+    const adminEmails = getAdminEmailsString()
     const mailOptions = {
       from: process.env.SMTP_FROM,
-      to: process.env.CAPTAIN_EMAILS, // Use CAPTAIN_EMAILS as recipient
+      to: adminEmails, // Use admin emails as recipients
       subject: subject,
       text: text,
       html: html,
       attachments: attachments
     }
 
-    console.log('Attempting to send email to:', process.env.CAPTAIN_EMAILS)
+    console.log('Attempting to send email to admins:', adminEmails)
     const result = await transporter.sendMail(mailOptions)
     console.log('Email sent successfully:', result.messageId)
     return result
