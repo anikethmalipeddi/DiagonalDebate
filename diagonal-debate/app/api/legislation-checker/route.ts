@@ -301,8 +301,72 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('[API] LanguageTool spelling error:', err);
     }
+    // Common government, business, and debate acronyms that should be ignored
+    const allowedAcronyms = [
+      // Government Agencies & Departments
+      'USTR', 'CBP', 'HHS', 'FDA', 'EPA', 'DOD', 'DOE', 'DOJ', 'DHS', 'USDA',
+      'NASA', 'NOAA', 'OSHA', 'FEMA', 'CIA', 'FBI', 'NSA', 'IRS', 'SSA',
+      'ATF', 'DEA', 'ICE', 'TSA', 'USCIS', 'USPS', 'VA', 'CMS', 'CDC',
+      'NIH', 'NIST', 'CPSC', 'FTC', 'SEC', 'CFTC', 'FDIC', 'OCC', 'NCUA',
+      'SBA', 'GSA', 'OPM', 'OMB', 'CBO', 'GAO', 'USAID', 'ODNI', 'DNI',
+
+      // Legislative & Political
+      'GOP', 'DNC', 'RNC', 'PAC', 'SCOTUS', 'POTUS', 'VPOTUS', 'FLOTUS',
+      'SOTU', 'NDAA', 'AUMF', 'CRA', 'FOIA', 'ACA', 'DACA', 'DREAM',
+
+      // International Organizations
+      'UN', 'NATO', 'EU', 'WHO', 'IMF', 'WTO', 'OECD', 'G7', 'G20',
+      'ASEAN', 'OPEC', 'BRICS', 'NAFTA', 'USMCA', 'TPP', 'CPTPP',
+
+      // Business & Economics
+      'CEO', 'CFO', 'CTO', 'COO', 'CMO', 'CIO', 'IPO', 'LLC', 'Inc',
+      'GDP', 'GNP', 'CPI', 'PPI', 'NYSE', 'NASDAQ', 'S&P', 'DOW',
+      'REIT', 'ETF', 'ESG', 'ROI', 'NPV', 'IRR', 'EBITDA', 'P&L',
+
+      // Technology & Internet
+      'AI', 'ML', 'IoT', 'VR', 'AR', 'API', 'URL', 'HTTP', 'HTTPS',
+      'DNS', 'ISP', 'WiFi', 'GPS', 'USB', 'CPU', 'GPU', 'RAM', 'SSD',
+      'IT', 'IP', 'TCP', 'UDP', 'SSL', 'TLS', 'VPN', 'CDN', 'SaaS',
+
+      // Education & Academic
+      'GPA', 'SAT', 'ACT', 'AP', 'IB', 'STEM', 'STEAM', 'PhD', 'MBA',
+      'BA', 'BS', 'MA', 'MS', 'MD', 'JD', 'LLM', 'EdD', 'PsyD',
+
+      // Healthcare & Medical
+      'EMT', 'ICU', 'ER', 'OR', 'MRI', 'CT', 'EKG', 'ECG', 'IV',
+      'CPR', 'AED', 'HIPAA', 'PPE', 'WHO', 'AMA', 'RN', 'LPN', 'PA',
+
+      // Military & Defense
+      'NATO', 'NORAD', 'CENTCOM', 'PACOM', 'EUCOM', 'AFRICOM', 'SOUTHCOM',
+      'JSOC', 'SOCOM', 'STRATCOM', 'CYBERCOM', 'TRANSCOM', 'SPACECOM',
+      'USMC', 'USCG', 'USSF', 'ROTC', 'JROTC', 'POW', 'MIA', 'KIA',
+
+      // Environmental & Energy
+      'CO2', 'CH4', 'N2O', 'CFC', 'HFC', 'PFC', 'SF6', 'GHG', 'PPM',
+      'EPA', 'NEPA', 'ESA', 'CWA', 'CAA', 'RCRA', 'CERCLA', 'TSCA',
+
+      // Debate & Forensics
+      'NSDA', 'WACFL', 'NCFL', 'PF', 'LD', 'CX', 'VHSL', 'TOC', 'NDCA',
+      'NFL', 'NIETOC', 'NAUDL', 'APDA', 'NPDA', 'CEDA', 'NDT', 'NPTE',
+
+      // Common Abbreviations
+      'USA', 'US', 'UK', 'EU', 'USSR', 'UAE', 'UAE', 'PRC', 'ROC',
+      'DPRK', 'ROK', 'ASAP', 'FAQ', 'FYI', 'RSVP', 'TBD', 'TBA',
+      'ETA', 'EOD', 'COB', 'QA', 'R&D', 'HR', 'PR', 'IT', 'AI'
+    ];
+
     let grammarSpellingErrors = [];
     for (const match of spellingMatches) {
+      // Get the flagged word from the text
+      const flaggedWord = text.substring(match.offset, match.offset + match.length);
+      console.log('[API] Checking flagged word:', flaggedWord, 'against allowed acronyms');
+
+      // Skip if it's a known acronym
+      if (allowedAcronyms.includes(flaggedWord.toUpperCase())) {
+        console.log('[API] Skipping allowed acronym:', flaggedWord);
+        continue;
+      }
+
       grammarSpellingErrors.push({
         section: 'Body',
         message: match.message,
@@ -330,7 +394,11 @@ export async function POST(req: NextRequest) {
     let grammarErrors: any[] = [];
     try {
       const grammarMatches = await checkGrammarFull(text);
-      grammarErrors = grammarMatches.map(match => ({
+      grammarErrors = grammarMatches.filter(match => {
+        // Apply same acronym filter to grammar check
+        const flaggedWord = text.substring(match.offset, match.offset + match.length);
+        return !allowedAcronyms.includes(flaggedWord.toUpperCase());
+      }).map(match => ({
         section: 'Body',
         message: match.message,
         offset: match.offset,
@@ -363,7 +431,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Gemini API call
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
     const prompt = `
       You are an expert debate coach specializing in high school Congressional Debate.
       Your task is to review a piece of legislation and provide feedback in four specific categories: Grammar, Readability, AI Suggestions, and an Overall Score using a detailed rubric.
