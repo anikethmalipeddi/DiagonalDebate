@@ -50,6 +50,7 @@ export default function AdminPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const allLessons = lessonFiles;
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null)
+  const [bulkLoading, setBulkLoading] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     // Fetch current user
@@ -60,7 +61,7 @@ export default function AdminPage() {
           setCurrentUser(data.user)
         }
       })
-  
+
     // Fetch users
     fetch('/api/users')
       .then(res => res.json())
@@ -118,7 +119,7 @@ export default function AdminPage() {
         if (eventsData.events) {
           setEventsWithSignups(eventsData.events)
         }
-        
+
         // Clear selection
         setSelectedUsers(prev => ({ ...prev, [eventId]: '' }))
       } else {
@@ -136,6 +137,56 @@ export default function AdminPage() {
       })
     } finally {
       setLoading(prev => ({ ...prev, [eventId]: false }))
+    }
+  }
+
+  const handleAddAllUsers = async (eventId: string) => {
+    setBulkLoading(prev => ({ ...prev, [eventId]: true }))
+
+    try {
+      const response = await fetch(`/api/events/${eventId}/add-all-users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        if (data.addedCount === 0) {
+          toast({
+            title: "No Users to Add",
+            description: "All users are already signed up for this event",
+          })
+        } else {
+          toast({
+            title: "Success",
+            description: `Added ${data.addedCount} users to the event`,
+          })
+        }
+
+        // Refresh events data
+        const eventsResponse = await fetch('/api/events')
+        const eventsData = await eventsResponse.json()
+        if (eventsData.events) {
+          setEventsWithSignups(eventsData.events)
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to add all users to event",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add all users to event",
+        variant: "destructive"
+      })
+    } finally {
+      setBulkLoading(prev => ({ ...prev, [eventId]: false }))
     }
   }
 
@@ -162,7 +213,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-50/50">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <h1 className="text-3xl font-bold mb-8 text-gray-800">Admin Dashboard</h1>
-        
+
         <Tabs defaultValue="dashboard" className="w-full">
           <div className="max-w-screen-lg mx-auto">
             <TabsList className="w-full gap-0 rounded-2xl overflow-hidden p-0 m-0">
@@ -208,6 +259,7 @@ export default function AdminPage() {
                       <TableHead className="text-center">Signups</TableHead>
                       <TableHead>Attendees</TableHead>
                       <TableHead>Add User</TableHead>
+                      <TableHead>Bulk Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -233,8 +285,8 @@ export default function AdminPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Select 
-                              value={selectedUsers[event.id] || ''} 
+                            <Select
+                              value={selectedUsers[event.id] || ''}
                               onValueChange={(value) => setSelectedUsers(prev => ({ ...prev, [event.id]: value }))}
                             >
                               <SelectTrigger className="w-32">
@@ -248,8 +300,8 @@ export default function AdminPage() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() => handleAddUser(event.id)}
                               disabled={loading[event.id]}
@@ -257,6 +309,17 @@ export default function AdminPage() {
                               {loading[event.id] ? 'Adding...' : 'Add'}
                             </Button>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleAddAllUsers(event.id)}
+                            disabled={bulkLoading[event.id]}
+                            className="whitespace-nowrap"
+                          >
+                            {bulkLoading[event.id] ? 'Adding All...' : 'Add All Remaining'}
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -277,7 +340,7 @@ export default function AdminPage() {
                       <SelectValue placeholder="Select a user" />
                     </SelectTrigger>
                     <SelectContent>
-                    {usersWithLessons.map((user: any) => (
+                      {usersWithLessons.map((user: any) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.name} ({user.email})
                         </SelectItem>
@@ -356,11 +419,11 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="lessons">
-              <Card>
-                <CardHeader>
+            <Card>
+              <CardHeader>
                 <CardTitle>Lesson Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
+              </CardHeader>
+              <CardContent>
                 <div className="mb-6">
                   <Select value={selectedLesson || ''} onValueChange={setSelectedLesson}>
                     <SelectTrigger className="w-64">
@@ -379,52 +442,52 @@ export default function AdminPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <div className="font-semibold mb-2">Enrollments</div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Enrolled On</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Enrolled On</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {usersWithLessons.flatMap(user =>
                             user.lessonEnrollments?.filter((e: any) => e.lessonFileName === selectedLesson).map((e: any) => ({ ...e, user })) || []
                           ).map((enrollment: any) => (
-                        <TableRow key={enrollment.id}>
+                            <TableRow key={enrollment.id}>
                               <TableCell>{enrollment.user.name || enrollment.user.email}</TableCell>
                               <TableCell>{new Date(enrollment.createdAt).toLocaleDateString()} {new Date(enrollment.createdAt).toLocaleTimeString()}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                     <div>
                       <div className="font-semibold mb-2">Ratings</div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Rating</TableHead>
-                        <TableHead>Rated On</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Rating</TableHead>
+                            <TableHead>Rated On</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {usersWithLessons.flatMap(user =>
                             user.lessonRatings?.filter((r: any) => r.lessonFileName === selectedLesson).map((r: any) => ({ ...r, user })) || []
                           ).map((rating: any) => (
-                        <TableRow key={rating.id}>
+                            <TableRow key={rating.id}>
                               <TableCell>{rating.user.name || rating.user.email}</TableCell>
                               <TableCell><span className="text-yellow-600">★</span> {rating.rating}/5</TableCell>
                               <TableCell>{new Date(rating.createdAt).toLocaleDateString()} {new Date(rating.createdAt).toLocaleTimeString()}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
                 )}
-                </CardContent>
-              </Card>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
