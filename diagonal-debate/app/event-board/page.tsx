@@ -365,12 +365,12 @@ function EventCard({ event, currentUser }: { event: Event; currentUser: User | n
                 <span className="text-sm text-gray-600">Loading attendees...</span>
               </div>
             ) : attendees.length > 0 ? (
-              <div className="bg-gray-50 rounded-lg p-3">
-                <ScrollArea className="w-full max-h-40">
-                  <div className="flex flex-col gap-1">
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <ScrollArea className="w-full h-48 pr-4">
+                  <div className="flex flex-col gap-2">
                     {attendees.map((a) => (
-                      <div key={a.id} className="text-sm text-gray-700 flex items-center space-x-1">
-                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                      <div key={a.id} className="text-sm text-gray-700 flex items-center space-x-2 py-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
                         <span>{a.name}</span>
                       </div>
                     ))}
