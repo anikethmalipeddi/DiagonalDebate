@@ -98,7 +98,7 @@ export function Footer() {
         <div className="border-t border-gray-700 mt-8 pt-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="text-center md:text-left">
-              <p className="text-black-300">© 2025 DiagonalDebate. Built for the team, by Aniketh Malipeddi and ? (IT COULD BE YOU, GET YOUR 10 REFERALLS ASAP).</p>
+              <p className="text-black-300">© 2025 DiagonalDebate. Built by Aniketh Malipeddi. <span className="text-xs opacity-75">WACFL endorsed</span></p>
             </div>
             <div className="text-center md:text-right">
               <p className="text-black-300 mb-2">Questions? Contact us:</p>
@@ -107,6 +107,7 @@ export function Footer() {
                   diagonaldebate@gmail.com
                 </a>
               </p>
+              <p className="text-xs text-black-400 mt-1 opacity-75">Contact for enterprise edition</p>
             </div>
           </div>
         </div>
