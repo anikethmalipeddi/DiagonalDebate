@@ -96,7 +96,7 @@ const generateLessonsFromFiles = (): Lesson[] => {
         category: "Speaking",
   rating: 4.9,
   ratingCount: 24,
-  enrolled: 116,
+  enrolled: 118,
         topics: ["Basics", "Structure", "Procedures"],
         content: "This foundational lesson covers the core concepts of congressional debate, including chamber procedures, speaking order, and basic argumentation techniques.",
         objectives: [
@@ -119,7 +119,7 @@ const generateLessonsFromFiles = (): Lesson[] => {
         category: "Writing",
   rating: 4.8,
   ratingCount: 22,
-  enrolled: 114,
+  enrolled: 103,
         topics: ["Legislation", "Writing", "Analysis"],
         content: "Learn the NSDA standards for bill writing, including proper formatting, effective policy proposals, and how to analyze legislation for debate.",
         objectives: [
@@ -142,7 +142,7 @@ const generateLessonsFromFiles = (): Lesson[] => {
         category: "Speaking",
   rating: 4.7,
   ratingCount: 21,
-  enrolled: 108,
+  enrolled: 122,
         topics: ["Argumentation", "Refutation", "Strategy"],
         content: "Advanced techniques for constructing compelling arguments, effective refutation, and strategic debate positioning.",
         objectives: [
@@ -284,8 +284,8 @@ const generateLessonsFromFiles = (): Lesson[] => {
     // Generate more specific descriptions based on content
     const description = generateDescription(title, category, difficulty)
     
-    // Placeholder enrollment: 100-120, placeholder ratings: 4.5-5.0, raters: 20-30
-    const placeholderEnrolled = 100 + (index % 21) // yields 100-120
+    // Placeholder enrollment: 100-125, placeholder ratings: 4.5-5.0, raters: 20-30
+    const placeholderEnrolled = 100 + (index % 26) // yields 100-125
     let placeholderRating = 4.5 + ((index % 6) * 0.1)
     if (placeholderRating > 5) placeholderRating = 5
     const placeholderRatingCount = 20 + (index % 11) // yields 20-30
