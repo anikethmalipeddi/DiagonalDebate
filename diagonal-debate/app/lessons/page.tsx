@@ -285,9 +285,9 @@ const generateLessonsFromFiles = (): Lesson[] => {
     const description = generateDescription(title, category, difficulty)
     
     // Placeholder enrollment: 100-125, placeholder ratings: 4.5-5.0, raters: 20-30
-    // Use a more random distribution based on filename hash
-    const hash = filename.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0)
-    const placeholderEnrolled = 100 + Math.abs(hash % 26) // yields 100-125 with better distribution
+    // Use predefined random numbers for more realistic distribution
+    const randomEnrollments = [118, 103, 122, 107, 115, 109, 124, 101, 119, 112, 105, 123, 108, 117, 104, 121, 110, 114, 106, 120]
+    const placeholderEnrolled = randomEnrollments[index % randomEnrollments.length]
     let placeholderRating = 4.5 + ((index % 6) * 0.1)
     if (placeholderRating > 5) placeholderRating = 5
     const placeholderRatingCount = 20 + (index % 11) // yields 20-30
