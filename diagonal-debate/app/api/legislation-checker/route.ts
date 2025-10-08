@@ -79,8 +79,10 @@ function checkTemplateErrors(type: string, body: string, title?: string): string
     if (section6Match) {
       const section6Text = section6Match[0];
       console.log('SECTION 6 text:', section6Text);
-      if (!section6Text.includes('All laws in conflict with this legislation are hereby declared null and void.')) {
-        errors.push('SECTION 6 must include: "All laws in conflict with this legislation are hereby declared null and void."');
+      // Extract content after "SECTION 6." and check if it starts with "All"
+      const section6Content = section6Text.replace(/^SECTION 6\.\s*/, '').trim();
+      if (!section6Content.startsWith('All')) {
+        errors.push('SECTION 6 content must start with "All"');
       }
     } else {
       errors.push('Missing SECTION 6 content.');
