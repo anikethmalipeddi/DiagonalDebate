@@ -11,6 +11,16 @@ export interface User {
   updatedAt: Date
 }
 
+export function getJwtSecret(): Uint8Array {
+  const jwtSecret = process.env.JWT_SECRET
+
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET must be configured')
+  }
+
+  return new TextEncoder().encode(jwtSecret)
+}
+
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies()
@@ -20,7 +30,7 @@ export async function getCurrentUser(): Promise<User | null> {
       return null
     }
 
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret')
+    const secret = getJwtSecret()
     const { payload } = await jwtVerify(token.value, secret)
 
     if (!payload.userId || !payload.email || !payload.name) {
@@ -54,4 +64,4 @@ export async function getUserById(userId: string): Promise<User | null> {
     console.error('Error getting user by ID:', error)
     return null
   }
-} 
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { SignJWT } from 'jose'
+import { getJwtSecret } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create JWT token
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret')
+    const secret = getJwtSecret()
     const token = await new SignJWT({ 
       userId: user.id, 
       email: user.email,
@@ -72,4 +73,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

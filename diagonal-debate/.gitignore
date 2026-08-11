@@ -1,6 +1,10 @@
 
 .env*
-.env*.localnode_modules/
+.env.example
+*.db
+*.sqlite
+.env*.local
+node_modules/
 .pnpm-debug.log*
 .svelte-kit/
 .vercel
