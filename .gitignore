@@ -1,0 +1,16 @@
+.DS_Store
+.vscode/
+node_modules/
+*.zip
+
+# Nested application output and local configuration
+diagonal-debate/.next/
+diagonal-debate/node_modules/
+diagonal-debate/.env
+diagonal-debate/.env.*
+!diagonal-debate/.env.example
+diagonal-debate/*.tsbuildinfo
+diagonal-debate/prisma/*.db
+diagonal-debate/prisma/*.db-journal
+diagonal-debate/data/*-fallback.jsonl
+diagonal-debate/test-outputs/

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { SignJWT } from 'jose'
-import { getJwtSecret } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getJwtSecret } from '@/lib/env'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create JWT token
-    const secret = getJwtSecret()
     const token = await new SignJWT({ 
       userId: user.id, 
       email: user.email,
@@ -45,7 +44,7 @@ export async function POST(request: NextRequest) {
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime('24h')
-      .sign(secret)
+      .sign(getJwtSecret())
 
     // Create response with cookie
     const response = NextResponse.json({

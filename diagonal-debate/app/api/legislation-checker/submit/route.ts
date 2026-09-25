@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { emailToCaptains, LegislationData } from '@/lib/email'
+import { emailToCaptains } from '@/lib/email'
 import PDFDocument from 'pdfkit'
 import path from 'path'
 import { randomUUID } from 'crypto'
-import { sendEmail } from '@/lib/email'
 
 /* -------------------------------------------------------------------------
    Rock Ridge – PDF generator (EXACT template match with fixed alignment)

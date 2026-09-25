@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"

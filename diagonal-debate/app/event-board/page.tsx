@@ -37,7 +37,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { events, type Event } from "@/lib/events"
 import { format, isSameDay } from "date-fns"
 import type { User } from "@/lib/auth"
-import { toast } from "sonner"
 import Link from "next/link"
 import { ScrollAnimation } from "@/components/scroll-animation"
 
@@ -250,7 +249,9 @@ function EventCard({ event, currentUser }: { event: Event; currentUser: User | n
     Holiday: { icon: Bell, color: "border-gray-300", bgColor: "bg-gray-50", iconColor: "text-gray-500" },
   }
 
-  let { icon: CategoryIcon, color, bgColor, iconColor } = categoryStyles[event.category]
+  const categoryStyle = categoryStyles[event.category]
+  const CategoryIcon = categoryStyle.icon
+  let { color, bgColor, iconColor } = categoryStyle
 
   if (isChampionship) {
     color = "border-yellow-500"
@@ -265,13 +266,7 @@ function EventCard({ event, currentUser }: { event: Event; currentUser: User | n
 
   const canSignUp = event.category === "Tournament" || event.category === "Meeting"
 
-  const isAdmin = currentUser && [
-    "aniketh.malipeddi@gmail.com",
-    "anikethmalipeddi@gmail.com",
-    "adithestar6@gmail.com",
-    "udaygoel234@gmail.com",
-    "uday.goel234@gmail.com"
-  ].includes(currentUser.email)
+  const isAdmin = Boolean(currentUser?.isAdmin)
 
   const isInviteOnly = isChampionship || isNational;
 
@@ -883,4 +878,4 @@ export default function EventBoardPage() {
       </section>
     </div>
   )
-} 
+}

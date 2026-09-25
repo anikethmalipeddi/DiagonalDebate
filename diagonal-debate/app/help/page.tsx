@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { HelpCircle, Book, MessageCircle, Mail, Clock, AlertTriangle, ArrowRight, CheckCircle } from "lucide-react"
+import { HelpCircle, Book, MessageCircle, Mail, Clock, AlertTriangle, CheckCircle } from "lucide-react"
 import { AnimatedIcon } from "@/components/animated-icon"
 import { ScrollAnimation } from "@/components/scroll-animation"
 

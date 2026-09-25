@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { events } from '@/lib/events'
+import { isAdmin } from '@/lib/admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,8 +22,11 @@ export async function POST(request: NextRequest) {
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
-    if (event.tournamentType === 'Championship') {
-      const { isAdmin } = await import('@/lib/admin')
+    const eventDefinition = events.find((candidate) => candidate.id === eventId)
+    const isInviteOnly = eventDefinition?.tournamentType === 'Championship'
+      || eventDefinition?.tournamentType === 'National'
+
+    if (isInviteOnly) {
       if (!isAdmin(user.email)) {
         return NextResponse.json({ error: 'Invite only: Only admins can add users to this event.' }, { status: 403 })
       }
@@ -50,4 +55,4 @@ export async function POST(request: NextRequest) {
     console.error('Event signup error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-} 
+}

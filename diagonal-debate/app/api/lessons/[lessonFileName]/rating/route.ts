@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-import { sendEmail } from '@/lib/email';
 
 // GET: fetch average rating and user's rating for a lesson
 export async function GET(

@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const currentUser = await getCurrentUser()
@@ -19,7 +19,7 @@ export async function POST(
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    const { eventId } = params
+    const { eventId } = await params
 
     // Verify event exists
     const event = await prisma.event.findUnique({

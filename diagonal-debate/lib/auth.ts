@@ -1,6 +1,7 @@
 import { jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
+import { getJwtSecret } from './env'
 
 export interface User {
   id: string
@@ -9,16 +10,7 @@ export interface User {
   password: string
   createdAt: Date
   updatedAt: Date
-}
-
-export function getJwtSecret(): Uint8Array {
-  const jwtSecret = process.env.JWT_SECRET
-
-  if (!jwtSecret) {
-    throw new Error('JWT_SECRET must be configured')
-  }
-
-  return new TextEncoder().encode(jwtSecret)
+  isAdmin?: boolean
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -30,8 +22,7 @@ export async function getCurrentUser(): Promise<User | null> {
       return null
     }
 
-    const secret = getJwtSecret()
-    const { payload } = await jwtVerify(token.value, secret)
+    const { payload } = await jwtVerify(token.value, getJwtSecret())
 
     if (!payload.userId || !payload.email || !payload.name) {
       return null
@@ -59,7 +50,18 @@ export async function getUserById(userId: string): Promise<User | null> {
       }
     })
 
-    return user || null
+    if (!user?.name || !user.email) {
+      return null
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      password: user.password,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    }
   } catch (error) {
     console.error('Error getting user by ID:', error)
     return null

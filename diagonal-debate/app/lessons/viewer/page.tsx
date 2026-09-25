@@ -2,11 +2,7 @@
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Maximize2, Star, MessageSquare } from "lucide-react";
-import { useRef, useState, useEffect } from "react";
-import { StarRating } from "@/components/ui/star-rating";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect } from "react";
 
 const PDFViewer = dynamic(() => import("../../components/PDFViewer"), { ssr: false });
 

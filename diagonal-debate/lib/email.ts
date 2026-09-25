@@ -1,40 +1,17 @@
 import nodemailer from 'nodemailer'
-import { prisma } from './prisma'
 import { getAdminEmailsString } from './admin'
 
-// Debug environment variables
-console.log('SMTP Debug Info:')
-console.log('SMTP_HOST:', process.env.SMTP_HOST ? 'Set' : 'Not set')
-console.log('SMTP_USER:', process.env.SMTP_USER ? 'Set' : 'Not set')
-console.log('SMTP_PASSTWO:', process.env.SMTP_PASSTWO ? 'Set' : 'Not set')
-console.log('ADMIN_EMAILS (used as captains):', getAdminEmailsString())
-
-// Email configuration with better error handling
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true for 465, false for other ports
+  secure: process.env.SMTP_PORT === '465',
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSTWO
+    pass: process.env.SMTP_PASS
   },
-  // Add timeout and other options for better reliability
   connectionTimeout: 60000,
   greetingTimeout: 30000,
   socketTimeout: 60000,
-  // Add secure options
-  tls: {
-    rejectUnauthorized: false
-  }
-})
-
-// Verify connection configuration
-transporter.verify(function(error: any, success: any) {
-  if (error) {
-    console.error('Email server connection error:', error)
-  } else {
-    console.log('Email server is ready to send messages')
-  }
 })
 
 export interface LegislationData {
@@ -50,12 +27,15 @@ export interface LegislationData {
 export async function emailToCaptains(pdfBuffer: Buffer, legislationData: LegislationData) {
   try {
     // Validate environment variables
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASSTWO) {
-      throw new Error('SMTP_USER or SMTP_PASSTWO environment variables are not set')
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      throw new Error('SMTP_HOST, SMTP_USER, and SMTP_PASS must be configured')
     }
     
     // Use admin emails as captains (no longer need CAPTAIN_EMAILS env var)
     const captainEmails = getAdminEmailsString()
+    if (!captainEmails) {
+      throw new Error('ADMIN_EMAILS must include at least one address')
+    }
     
     // Remove CC from the main email to captains
     const mailOptions = {
@@ -91,9 +71,7 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       ]
     }
 
-    console.log('Attempting to send email to admins/captains:', captainEmails)
     const result = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully to admins/captains:', result.messageId)
     
     // Always send confirmation email to the user if their email is present
     if (legislationData.submittedBy && /.+@.+\..+/.test(legislationData.submittedBy)) {
@@ -127,8 +105,7 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
         ]
       }
       
-      const userResult = await transporter.sendMail(userMailOptions)
-      console.log('Confirmation email sent successfully to user:', userResult.messageId)
+      await transporter.sendMail(userMailOptions)
     }
     
     return result
@@ -142,7 +119,7 @@ export async function emailToCaptains(pdfBuffer: Buffer, legislationData: Legisl
       console.error('1. Use an App Password instead of your regular password')
       console.error('2. Enable 2-factor authentication on your Gmail account')
       console.error('3. Generate an App Password at: https://myaccount.google.com/apppasswords')
-      console.error('4. Use the App Password in your SMTP_PASSTWO environment variable')
+      console.error('4. Use the App Password in your SMTP_PASS environment variable')
     }
     
     throw error
@@ -161,12 +138,10 @@ export async function sendEmail(subject: string, text: string, html?: string, at
       attachments: attachments
     }
 
-    console.log('Attempting to send email to admins:', adminEmails)
     const result = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully:', result.messageId)
     return result
   } catch (error) {
     console.error('Email sending failed:', error)
     throw error
   }
-} 
+}

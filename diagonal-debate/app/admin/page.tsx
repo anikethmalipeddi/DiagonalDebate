@@ -1,21 +1,15 @@
 "use client"
 
-import { events } from "@/lib/events"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Users, Calendar, UserCheck, ShieldAlert, BookOpen, Star, ChevronDown, ChevronRight, Plus, Edit, Trash2 } from "lucide-react"
+import { Users, Calendar, ShieldAlert } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { ADMIN_EMAILS } from "@/lib/admin"
 
 const lessonFiles: string[] = [
   "general-overview-schedule-wacfl-1.pdf",
@@ -192,7 +186,7 @@ export default function AdminPage() {
 
 
 
-  if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
+  if (!currentUser || !currentUser.isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
         <Alert className="max-w-md">
@@ -493,4 +487,4 @@ export default function AdminPage() {
       </div>
     </div>
   )
-} 
+}

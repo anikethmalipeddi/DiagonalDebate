@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Users, Award, Zap, BookOpen, FileText, Target, Lightbulb, Rocket } from "lucide-react"
+import { Users, Award, Zap, Target, Lightbulb, Rocket } from "lucide-react"
 import { features } from "@/lib/constants"
 import { ScrollAnimation } from "@/components/scroll-animation"
 

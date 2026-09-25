@@ -17,8 +17,6 @@ const RATE_LIMIT = 5;
 const WINDOW = 60; // seconds
 
 export async function rateLimiter(ip: string) {
-  console.log('[rateLimiter] NODE_ENV=', process.env.NODE_ENV, ' raw ip=', ip)
-
   // Normalize IP: handle comma-separated X-Forwarded-For, IPv4-mapped IPv6 (::ffff:127.0.0.1)
   let normalizedIp = (ip || 'unknown').toString().split(',')[0].trim()
   if (normalizedIp.startsWith('::ffff:')) normalizedIp = normalizedIp.replace('::ffff:', '')
@@ -26,7 +24,6 @@ export async function rateLimiter(ip: string) {
   // During local development allow loopback addresses to bypass the Upstash limiter.
   if (process.env.NODE_ENV !== 'production') {
     if (normalizedIp === '::1' || normalizedIp === '127.0.0.1' || normalizedIp === 'localhost') {
-      console.log('[rateLimiter] bypassing limiter for local loopback ip=', normalizedIp)
       return
     }
   }
@@ -37,18 +34,20 @@ export async function rateLimiter(ip: string) {
   }
 
   const key = `ratelimit:${normalizedIp}`;
+  let count: number
   try {
     // Atomically increment and set expiry if new
-    const count = await redis.incr(key);
+    count = await redis.incr(key);
     if (count === 1) {
       await redis.expire(key, WINDOW);
-    }
-    if (count > RATE_LIMIT) {
-      throw new Error("Rate limit exceeded");
     }
   } catch (err) {
     // Network/auth errors should not break user flows in dev; log and bypass.
     console.warn('[rateLimiter] Redis error; bypassing limiter. key=', key, err);
     return;
   }
-} 
+
+  if (count > RATE_LIMIT) {
+    throw new Error("Rate limit exceeded");
+  }
+}

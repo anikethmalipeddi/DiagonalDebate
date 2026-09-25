@@ -13,7 +13,6 @@ import { Progress } from "@/components/ui/progress"
 import {
   CheckCircle,
   AlertCircle,
-  Lightbulb,
   FileText,
   Send,
   CheckCircle2,
@@ -25,9 +24,8 @@ import {
   Shield,
   Award,
   Puzzle,
-  Info,
 } from "lucide-react"
-import { Toaster, toast } from "sonner"
+import { toast } from "sonner"
 import { ScrollAnimation } from "@/components/scroll-animation"
 
 type GrammarSpellingError = {

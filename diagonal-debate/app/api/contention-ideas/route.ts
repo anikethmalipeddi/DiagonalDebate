@@ -95,7 +95,6 @@ export async function POST(req: NextRequest) {
     const response = await result.response
     const text = await response.text()
 
-    console.log("[Gemini RAW RESPONSE]", text)
 
     let contentions: any = []
     let fallback = false
@@ -149,4 +148,4 @@ export async function POST(req: NextRequest) {
     console.error("Error generating AI contentions:", error)
     return NextResponse.json({ error: error?.message || "Failed to generate contentions" }, { status: 500 })
   }
-} 
+}

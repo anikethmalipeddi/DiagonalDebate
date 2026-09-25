@@ -1,22 +1,18 @@
-// Centralized admin/captain management
-// Admins are also the captains who receive legislation submissions
+// Admins also receive legislation submissions. Keep this list in deployment
+// configuration so team ownership can transfer without a code change.
+export function getAdminEmails(): string[] {
+  const configuredEmails = process.env.ADMIN_EMAILS || process.env.CAPTAIN_EMAILS || ""
 
-export const ADMIN_EMAILS = [
-  "aniketh.malipeddi@gmail.com",
-  "anikethmalipeddi@gmail.com",
-  "adithestar6@gmail.com",
-  "udaygoel234@gmail.com",
-  "uday.goel234@gmail.com"
-]
-
-export function isAdmin(email: string): boolean {
-  return ADMIN_EMAILS.includes(email)
+  return configuredEmails
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
 }
 
-export function getAdminEmails(): string[] {
-  return ADMIN_EMAILS
+export function isAdmin(email: string): boolean {
+  return getAdminEmails().includes(email.trim().toLowerCase())
 }
 
 export function getAdminEmailsString(): string {
-  return ADMIN_EMAILS.join(', ')
+  return getAdminEmails().join(', ')
 }

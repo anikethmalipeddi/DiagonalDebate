@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import { Maximize2, Minimize2, RotateCw, ArrowLeft } from 'lucide-react';
+import { RotateCw, ArrowLeft } from 'lucide-react';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';

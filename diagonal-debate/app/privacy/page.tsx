@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Shield, Lock, Eye, Database, UserCheck, Mail, MapPin } from "lucide-react"
+import { Shield, Lock, Database, UserCheck, Mail } from "lucide-react"
 import { ScrollAnimation } from "@/components/scroll-animation"
 import { AnimatedIcon } from "@/components/animated-icon"
 

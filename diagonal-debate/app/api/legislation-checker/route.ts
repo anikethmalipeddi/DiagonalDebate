@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimiter } from "@/lib/rateLimiter"
-import legislationTemplates from '@/data/legislationTemplates.json'
 
 // IMPORTANT: Set up your API key as an environment variable
 // Create a .env.local file in your project root and add:
@@ -56,15 +55,11 @@ function checkTemplateErrors(type: string, body: string, title?: string): string
       }
     }
     // --- LOGGING FOR DEBUG ---
-    console.log('--- TEMPLATE CHECK DEBUG ---');
-    console.log('Raw body:', JSON.stringify(body));
     // Check SECTION 5 content (case sensitive)
     const section5Match = body.match(/SECTION 5\.[\s\S]*?(?=SECTION 6\.|$)/);
-    console.log('SECTION 5 match:', section5Match);
     let section5Text = '';
     if (section5Match) {
       section5Text = section5Match[0];
-      console.log('SECTION 5 text:', section5Text);
       const datePattern = /(FY \d{4}|Fiscal Year \d{4}|[A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)?, \d{4})/i;
       const immediatePattern = /IMMEDIATELY UPON ITS PASSAGE/i;
       if (!datePattern.test(section5Text) && !immediatePattern.test(section5Text)) {
@@ -75,10 +70,8 @@ function checkTemplateErrors(type: string, body: string, title?: string): string
     }
     // Check SECTION 6 nullification (case sensitive)
     const section6Match = body.match(/SECTION 6\.[\s\S]*/);
-    console.log('SECTION 6 match:', section6Match);
     if (section6Match) {
       const section6Text = section6Match[0];
-      console.log('SECTION 6 text:', section6Text);
       // Extract content after "SECTION 6." and check if it starts with "All"
       const section6Content = section6Text.replace(/^SECTION 6\.\s*/, '').trim();
       if (!section6Content.startsWith('All')) {
@@ -87,7 +80,6 @@ function checkTemplateErrors(type: string, body: string, title?: string): string
     } else {
       errors.push('Missing SECTION 6 content.');
     }
-    console.log('--- END TEMPLATE CHECK DEBUG ---');
   } else if (type === 'resolution') {
     // At least one WHEREAS, clause (case sensitive)
     const whereasRegex = /WHEREAS,.*?;/g;
@@ -272,7 +264,6 @@ async function checkGrammarFull(text: string): Promise<any[]> {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('[API] Received legislation check request');
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     try {
       await rateLimiter(ip as string);
@@ -284,7 +275,6 @@ export async function POST(req: NextRequest) {
       }, { status: 429 });
     }
     const { text, type, category, number, title } = await req.json()
-    console.log('[API] Request body:', { text, type, category, number, title });
 
     if (!text || !type || !category || !number || !title) {
       console.error('[API] Missing required form fields', { text, type, category, number, title });
@@ -293,13 +283,11 @@ export async function POST(req: NextRequest) {
 
     // Perform the simple, rule-based template checks first
     const templateErrors = checkTemplateErrors(type, text, title)
-    console.log('[API] Template errors:', templateErrors);
 
     // Spelling check (strict spelling only)
     let spellingMatches = [];
     try {
       spellingMatches = await checkSpellingOnly(text);
-      console.log('[API] LanguageTool spelling matches:', spellingMatches);
     } catch (err) {
       console.error('[API] LanguageTool spelling error:', err);
     }
@@ -357,15 +345,13 @@ export async function POST(req: NextRequest) {
       'ETA', 'EOD', 'COB', 'QA', 'R&D', 'HR', 'PR', 'IT', 'AI'
     ];
 
-    let grammarSpellingErrors = [];
+    const grammarSpellingErrors = [];
     for (const match of spellingMatches) {
       // Get the flagged word from the text
       const flaggedWord = text.substring(match.offset, match.offset + match.length);
-      console.log('[API] Checking flagged word:', flaggedWord, 'against allowed acronyms');
 
       // Skip if it's a known acronym
       if (allowedAcronyms.includes(flaggedWord.toUpperCase())) {
-        console.log('[API] Skipping allowed acronym:', flaggedWord);
         continue;
       }
 
@@ -410,7 +396,6 @@ export async function POST(req: NextRequest) {
         rule: match.rule,
         type: match.rule.issueType
       }));
-      console.log('[API] LanguageTool grammar matches:', grammarErrors);
     } catch (err) {
       console.error('[API] LanguageTool grammar error:', err);
     }
@@ -428,7 +413,6 @@ export async function POST(req: NextRequest) {
         grammarSpellingRateLimited: false,
         aiReviewError: null,
       };
-      console.log('[API] Final feedback object (errors present, skipping AI):', feedback);
       return NextResponse.json(feedback);
     }
 
@@ -510,7 +494,6 @@ export async function POST(req: NextRequest) {
 
       Now, analyze the provided legislation text and return only the JSON object.
     `
-    console.log('[API] Calling Gemini API...');
     let aiResponseText = '';
     let aiFeedback = null;
     let geminiError = null;
@@ -518,11 +501,9 @@ export async function POST(req: NextRequest) {
       const result = await model.generateContent(prompt)
       const response = await result.response
       aiResponseText = await response.text()
-      console.log('[API] Gemini raw response:', aiResponseText);
       // Clean the response to ensure it's valid JSON
       const cleanedJsonText = aiResponseText.replace(/^```json\s*|```\s*$/g, "")
       aiFeedback = JSON.parse(cleanedJsonText)
-      console.log('[API] Gemini parsed feedback:', aiFeedback);
     } catch (err) {
       geminiError = err;
       // Check for overload/503
@@ -547,7 +528,6 @@ export async function POST(req: NextRequest) {
       grammarSpellingRateLimited: false,
       aiReviewError: geminiError,
     }
-    console.log('[API] Final feedback object:', finalFeedback);
 
     return NextResponse.json(finalFeedback)
   } catch (error) {
@@ -557,4 +537,4 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: "Failed to process legislation" }, { status: 500 })
   }
-} 
+}

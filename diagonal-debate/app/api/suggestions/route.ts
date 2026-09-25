@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
-import fs from 'fs/promises'
-import path from 'path'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,27 +13,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if SMTP is configured
-    console.log('SMTP Debug Info:')
-    console.log('SMTP_HOST:', process.env.SMTP_HOST ? 'Set' : 'Not set')
-    console.log('SMTP_USER:', process.env.SMTP_USER ? 'Set' : 'Not set')
-    console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'Set' : 'Not set')
-    
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       // Send actual email
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: false, // true for 465, false for other ports
+        secure: process.env.SMTP_PORT === '465',
         auth: {
           user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASSTWO,
+          pass: process.env.SMTP_PASS,
         },
       })
 
       try {
         await transporter.sendMail({
           from: process.env.SMTP_FROM || process.env.SMTP_USER,
-          to: 'diagonaldebate@gmail.com',
+          to: process.env.CONTACT_EMAIL || process.env.SMTP_USER,
           subject: `Feature Suggestion from ${name}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -57,63 +50,19 @@ export async function POST(request: NextRequest) {
           `,
         })
 
-        console.log('Feature suggestion email sent successfully')
         return NextResponse.json({ message: 'Feature suggestion submitted successfully! We\'ll review it and get back to you.' })
       } catch (sendError) {
         console.error('Nodemailer send error:', sendError)
-        // Fallback: save submission to a file so it can be processed later
-        try {
-          const fallbackDir = path.join(process.cwd(), 'data')
-          await fs.mkdir(fallbackDir, { recursive: true })
-          const filePath = path.join(fallbackDir, 'suggestions-fallback.jsonl')
-          const entry = {
-            type: 'suggestion',
-            name,
-            email,
-            feature,
-            createdAt: new Date().toISOString(),
-            error: String(sendError),
-          }
-          await fs.appendFile(filePath, JSON.stringify(entry) + '\n', 'utf8')
-          return NextResponse.json(
-            { message: 'Suggestion queued for review (email failed to send).' },
-            { status: 200 }
-          )
-        } catch (fsErr) {
-          console.error('Fallback write failed:', fsErr)
-          return NextResponse.json(
-            { error: 'Failed to submit suggestion' },
-            { status: 500 }
-          )
-        }
+        return NextResponse.json(
+          { error: 'Email delivery failed. Please try again later.' },
+          { status: 502 }
+        )
       }
     } else {
-      // SMTP not configured, queue to file so the form still behaves
-      try {
-        const fallbackDir = path.join(process.cwd(), 'data')
-        await fs.mkdir(fallbackDir, { recursive: true })
-        const filePath = path.join(fallbackDir, 'suggestions-fallback.jsonl')
-        const entry = {
-          type: 'suggestion',
-          name,
-          email,
-          feature,
-          createdAt: new Date().toISOString(),
-          error: 'SMTP not configured',
-        }
-        await fs.appendFile(filePath, JSON.stringify(entry) + '\n', 'utf8')
-        console.log('SMTP not configured, saved suggestion submission to file')
-        return NextResponse.json(
-          { message: 'Suggestion queued for review (email service not configured).' },
-          { status: 200 }
-        )
-      } catch (fsErr) {
-        console.error('Fallback write failed:', fsErr)
-        return NextResponse.json(
-          { error: 'Email service is not configured. Please try again later.' },
-          { status: 500 }
-        )
-      }
+      return NextResponse.json(
+        { error: 'Email service is not configured. Please try again later.' },
+        { status: 503 }
+      )
     }
   } catch (error) {
     console.error('Error submitting suggestion:', error)
@@ -122,4 +71,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}
