@@ -417,7 +417,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Gemini API call
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
     const prompt = `
       You are an expert debate coach specializing in high school Congressional Debate.
       Your task is to review a piece of legislation and provide feedback in four specific categories: Grammar, Readability, AI Suggestions, and an Overall Score using a detailed rubric.
