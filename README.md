@@ -1,51 +1,46 @@
 # DiagonalDebate
 
-DiagonalDebate is the debate team's web portal for event signups, lesson resources, legislation review, and basic team administration. The deployable Next.js application lives in [`diagonal-debate`](diagonal-debate/).
+A debate-team website for event signups, lesson materials, legislation review, and team administration.
 
-## Quick start
+[diagonaldebate.tech](https://diagonaldebate.tech/)
 
-Requirements: Node.js 20.9 or newer, npm, and a PostgreSQL database.
+The Next.js app lives in [`diagonal-debate/`](diagonal-debate/), with PostgreSQL and Prisma for storage.
 
-```bash
+## Run locally
+
+Use Node.js 20.9 or newer and a PostgreSQL database.
+
+```sh
 cd diagonal-debate
 cp .env.example .env.local
 npm ci
+```
+
+Fill in the required values in `.env.local`, including a `JWT_SECRET` of at least 32 characters. Then run:
+
+```sh
 npx prisma migrate deploy
 npm run seed-events
 npm run dev
 ```
 
-Open <http://localhost:3000>. Before running the app, replace every required placeholder in `.env.local`; `JWT_SECRET` must contain at least 32 characters.
+Open http://localhost:3000. Use a development database for local work.
 
-## Quality checks
+## Checks
 
-```bash
+From `diagonal-debate/`:
+
+```sh
 npm run check
 npm run build
-npm audit
 ```
 
-These commands lint the repository, type-check it, create a production build, and check dependencies for known vulnerabilities.
+With the development server running, `npm run test:legislation` checks the legislation and PDF endpoints. It writes output to `test-outputs/`.
 
-With the development server running, `npm run test:legislation` exercises the legislation review and PDF endpoints and writes disposable output to `test-outputs`.
+## Maintenance
 
-## Deployment
+On Vercel, set the project root to `diagonal-debate`. Configure the environment variables before running migrations or seeding the deployment database.
 
-The production application is designed for Vercel with `diagonal-debate` configured as the project root. Add the values from [`diagonal-debate/.env.example`](diagonal-debate/.env.example) to the hosting provider, then run database migrations and `npm run seed-events` against the production database.
+[HANDOFF.md](HANDOFF.md) covers deployment, service ownership, secret rotation, and seasonal updates. [Lesson notes](diagonal-debate/public/lessons/README.md) explain how to add PDFs.
 
-Do not commit `.env`, `.env.local`, database files, build output, or `node_modules`.
-
-## Operations and ownership transfer
-
-The full maintenance and transition checklist is in [`HANDOFF.md`](HANDOFF.md). It covers the services that must be transferred, secret rotation, seasonal event updates, database operations, and post-deployment checks.
-
-## Project map
-
-- `diagonal-debate/app` — pages and API routes
-- `diagonal-debate/components` — shared interface components
-- `diagonal-debate/lib` — authentication, email, events, database, and rate limiting
-- `diagonal-debate/prisma` — PostgreSQL schema and migrations
-- `diagonal-debate/public/lessons` — debate lesson PDFs
-- `diagonal-debate/scripts` — maintenance and seed scripts
-
-Report bugs and proposed changes through GitHub issues so the next maintainer has a durable record of decisions.
+Do not commit local environment files, databases, or build output. Files in `public/` are publicly served; hiding PDF viewer controls does not prevent downloads.
